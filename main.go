@@ -4,15 +4,17 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/tarm/serial"
 )
 
 func main() {
-	stream, err := serial.OpenPort(&serial.Config{
-		Name: "/dev/tty.usbserial-02894AD3",
-		Baud: 115200,
-	})
+	port := os.Getenv("ARDUINO_PORT")
+	if port == "" {
+		log.Fatal("missing ARDUINO_PORT")
+	}
+	stream, err := serial.OpenPort(&serial.Config{Name: port, Baud: 115200})
 	if err != nil {
 		log.Fatal(err)
 	}

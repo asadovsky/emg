@@ -8,7 +8,7 @@ fmt:
 
 .PHONY: upload
 upload:
-	arduino-cli compile /Users/sadovsky/dev/emg/blink -b arduino:avr:uno -p /dev/tty.usbserial-02894AD3 -u
+	arduino-cli compile arduino/blink -b arduino:avr:uno -p $(ARDUINO_PORT) -u
 
 .PHONY: listen
 listen:
