@@ -1,0 +1,7 @@
+{
+  "name": "emg",
+  "version": "0.0.1",
+  "devDependencies": {
+    "jshint": "^2.13.6"
+  }
+}

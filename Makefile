@@ -1,4 +1,5 @@
 SHELL := /bin/bash -euo pipefail
+PATH := node_modules/.bin:$(PATH)
 
 .DELETE_ON_ERROR:
 
@@ -8,7 +9,7 @@ upload:
 
 .PHONY: listen
 listen:
-	go run main.go
+	go run main.go --arduino-port $(ARDUINO_PORT)
 
 .PHONY: fmt
 fmt:
@@ -17,3 +18,4 @@ fmt:
 .PHONY: lint
 lint:
 	go vet ./...
+	jshint .
