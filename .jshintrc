@@ -22,5 +22,10 @@
 
   "browser": true,
   "devel": true,
-  "node": true
+  "node": true,
+
+  "globals": {
+    "SmoothieChart": false,
+    "TimeSeries": false
+  }
 }

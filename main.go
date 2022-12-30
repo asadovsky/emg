@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
+	"math"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/tarm/serial"
@@ -16,6 +18,7 @@ import (
 
 var httpPort = flag.Int("http-port", 4000, "")
 var arduinoPort = flag.String("arduino-port", "", "")
+var fakeData = flag.Bool("fake-data", false, "")
 
 func ok(err error, v ...interface{}) {
 	if err != nil {
@@ -24,8 +27,8 @@ func ok(err error, v ...interface{}) {
 }
 
 type Update struct {
-	Text string
-	Time int64
+	Time  int64
+	Value float32
 }
 
 type hub struct {
@@ -45,23 +48,38 @@ func newHub() *hub {
 }
 
 func (h *hub) listen() {
-	for {
-		stream, err := serial.OpenPort(&serial.Config{Name: *arduinoPort, Baud: 115200})
-		if !os.IsNotExist(err) {
+	if *fakeData {
+		startTime := time.Now().UnixMilli()
+		for {
+			secs := float64(time.Now().UnixMilli()-startTime) / 1000
+			buf, err := json.Marshal(&Update{
+				Time:  time.Now().UnixMilli(),
+				Value: float32(100 * math.Sin(2*math.Pi*secs)),
+			})
 			ok(err)
-			scanner := bufio.NewScanner(stream)
-			for scanner.Scan() {
-				u := &Update{
-					Text: scanner.Text(),
-					Time: time.Now().UnixMilli(),
-				}
-				buf, err := json.Marshal(u)
-				ok(err)
-				h.broadcast <- buf
-			}
-			ok(scanner.Err())
+			h.broadcast <- buf
+			time.Sleep(10 * time.Millisecond)
 		}
-		time.Sleep(time.Second)
+	} else {
+		for {
+			stream, err := serial.OpenPort(&serial.Config{Name: *arduinoPort, Baud: 115200})
+			if !os.IsNotExist(err) {
+				ok(err)
+				scanner := bufio.NewScanner(stream)
+				for scanner.Scan() {
+					v, err := strconv.ParseFloat(scanner.Text(), 32)
+					ok(err)
+					buf, err := json.Marshal(&Update{
+						Time:  time.Now().UnixMilli(),
+						Value: float32(v),
+					})
+					ok(err)
+					h.broadcast <- buf
+				}
+				ok(scanner.Err())
+			}
+			time.Sleep(time.Second)
+		}
 	}
 }
 
