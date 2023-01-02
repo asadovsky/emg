@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/tarm/serial"
@@ -141,7 +142,7 @@ func (h *hub) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		for {
 			err := conn.WriteMessage(websocket.TextMessage, <-send)
-			if err != websocket.ErrCloseSent {
+			if err != websocket.ErrCloseSent && err != syscall.EPIPE {
 				ok(err)
 			}
 		}
