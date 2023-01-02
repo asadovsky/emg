@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"container/ring"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -27,8 +28,9 @@ func ok(err error, v ...interface{}) {
 }
 
 type Update struct {
-	Time  int64
-	Value float32
+	Time       int64
+	Value      float32
+	SigmaRatio float32
 }
 
 type hub struct {
@@ -36,7 +38,13 @@ type hub struct {
 	subscribe   chan chan<- []byte
 	unsubscribe chan chan<- []byte
 	broadcast   chan []byte
+	r           *ring.Ring
+	n           int
+	mean        float32
+	variance    float32
 }
+
+const windowSize = 1000
 
 func newHub() *hub {
 	return &hub{
@@ -44,20 +52,50 @@ func newHub() *hub {
 		subscribe:   make(chan chan<- []byte),
 		unsubscribe: make(chan chan<- []byte),
 		broadcast:   make(chan []byte),
+		r:           ring.New(windowSize),
 	}
+}
+
+func (h *hub) handleUpdate(value float32) error {
+	var sigmaRatio float32 = -1
+	if h.n == windowSize && h.variance > 0 {
+		sigmaRatio = float32(math.Abs(float64(value-h.mean)) / math.Sqrt(float64(h.variance)))
+	}
+	oldMean := h.mean
+	if h.n < windowSize {
+		// Welford's algorithm.
+		h.n++
+		h.mean += (value - h.mean) / float32(h.n)
+		h.variance += (value - h.mean) * (value - oldMean)
+		if h.n == windowSize {
+			h.variance /= windowSize - 1
+		}
+	} else {
+		// https://jonisalonen.com/2014/efficient-and-accurate-rolling-standard-deviation/
+		oldValue := h.r.Value.(float32)
+		h.mean += (value - oldValue) / windowSize
+		h.variance += (value - oldValue) * (value - h.mean + oldValue - oldMean) / (windowSize - 1)
+	}
+	h.r.Value = value
+	h.r = h.r.Next()
+	buf, err := json.Marshal(&Update{
+		Time:       time.Now().UnixMilli(),
+		Value:      value,
+		SigmaRatio: sigmaRatio,
+	})
+	if err != nil {
+		return err
+	}
+	h.broadcast <- buf
+	return nil
 }
 
 func (h *hub) listen() {
 	if *fakeData {
 		startTime := time.Now().UnixMilli()
 		for {
-			secs := float64(time.Now().UnixMilli()-startTime) / 1000
-			buf, err := json.Marshal(&Update{
-				Time:  time.Now().UnixMilli(),
-				Value: float32(100 * math.Sin(2*math.Pi*secs)),
-			})
-			ok(err)
-			h.broadcast <- buf
+			t := float64(time.Now().UnixMilli()-startTime) / 1000
+			ok(h.handleUpdate(float32(100 * math.Sin(2*math.Pi*t))))
 			time.Sleep(10 * time.Millisecond)
 		}
 	} else {
@@ -69,12 +107,7 @@ func (h *hub) listen() {
 				for scanner.Scan() {
 					v, err := strconv.ParseFloat(scanner.Text(), 32)
 					ok(err)
-					buf, err := json.Marshal(&Update{
-						Time:  time.Now().UnixMilli(),
-						Value: float32(v),
-					})
-					ok(err)
-					h.broadcast <- buf
+					ok(h.handleUpdate(float32(v)))
 				}
 				ok(scanner.Err())
 			}
