@@ -4,6 +4,40 @@
   box-sizing: border-box;
 }
 
-iframe#player {
+body {
+  background-color: black;
+  margin: 0;
+}
+
+#main {
+  position: fixed;
+  top: 0;
+  bottom: 100px;
+  left: 0;
+  right: 0;
+}
+
+#bottom {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+}
+
+#main div {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#player,
+#plot {
   display: block;
+}
+
+#timer {
+  position: relative;
+  width: 10px;
 }
