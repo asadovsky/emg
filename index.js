@@ -17,10 +17,10 @@ class TimerView {
     this.el_.style.position = 'absolute';
     this.el_.style.bottom = '0';
     this.el_.style.width = el.offsetWidth + 'px';
-    this.onTick(initTimeLeft);
+    this.onUpdate(initTimeLeft);
     el.appendChild(this.el_);
   }
-  onTick(timeLeft) {
+  onUpdate(timeLeft) {
     const frac = timeLeft / this.initTimeLeft_;
     this.el_.style.height = this.maxHeight_ * frac + 'px';
     this.el_.style.backgroundColor =
@@ -29,54 +29,54 @@ class TimerView {
 }
 
 class Timer {
-  constructor(el, initTimeLeft, onTick) {
+  constructor(el, initTimeLeft, onFire) {
     this.view_ = new TimerView(el, initTimeLeft);
     this.initTimeLeft_ = initTimeLeft;
-    this.onTick_ = timeLeft => {
-      this.view_.onTick(timeLeft);
-      onTick(timeLeft);
-    };
+    this.onFire_ = onFire;
     this.timeLeft_ = initTimeLeft;
-    this.lastTickTime_ = 0;
+    this.lastUpdateTime_ = 0;
     this.running_ = false;
     this.epoch_ = 0;
   }
+  update_() {
+    const now = Date.now();
+    this.timeLeft_ -= (now - this.lastUpdateTime_) / 1000;
+    this.timeLeft_ = Math.max(0, this.timeLeft_);
+    this.lastUpdateTime_ = now;
+    this.view_.onUpdate(this.timeLeft_);
+    if (this.timeLeft_ === 0) {
+      this.running_ = false;
+      this.onFire_();
+    }
+  }
   start() {
     if (this.running_) return;
-    this.lastTickTime_ = Date.now();
+    this.lastUpdateTime_ = Date.now();
     this.running_ = true;
     this.epoch_++;
     this.tick_(this.epoch_);
   }
   pause() {
+    this.update_();
     this.running_ = false;
   }
   reset() {
-    this.running_ = false;
     this.timeLeft_ = this.initTimeLeft_;
+    this.view_.onUpdate(this.timeLeft_);
+    this.running_ = false;
   }
   tick_(epoch) {
     if (!this.running_ || epoch !== this.epoch_) return;
-    const now = Date.now();
-    this.timeLeft_ -= (now - this.lastTickTime_) / 1000;
-    this.timeLeft_ = Math.max(0, this.timeLeft_);
-    this.lastTickTime_ = now;
-    this.onTick_(this.timeLeft_);
-    if (this.timeLeft_ > 0) {
+    this.update_();
+    if (this.running_) {
       window.requestAnimationFrame(() => {this.tick_(epoch);});
-    } else {
-      this.running_ = false;
     }
   }
 }
 
 let player;
 
-const timer = new Timer(timerEl, 10, timeLeft => {
-  if (timeLeft === 0) {
-    player.pauseVideo();
-  }
-});
+const timer = new Timer(timerEl, 5, () => {player.pauseVideo();});
 
 // https://developers.google.com/youtube/iframe_api_reference
 function onYouTubeIframeAPIReady() {  // jshint ignore:line
