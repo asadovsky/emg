@@ -23,8 +23,9 @@ class TimerView {
   onUpdate(timeLeft) {
     const frac = timeLeft / this.initTimeLeft_;
     this.el_.style.height = this.maxHeight_ * frac + 'px';
-    this.el_.style.backgroundColor =
-      frac > 0.6 ? 'seagreen' : (frac > 0.3 ? 'goldenrod' : 'crimson');
+    const colors = ['crimson', 'goldenrod', 'seagreen'];
+    this.el_.style.backgroundColor = colors[
+      frac === 1 ? colors.length - 1 : Math.trunc(colors.length * frac)];
   }
 }
 
@@ -39,6 +40,7 @@ class Timer {
     this.epoch_ = 0;
   }
   update_() {
+    console.assert(this.running_);
     const now = Date.now();
     this.timeLeft_ -= (now - this.lastUpdateTime_) / 1000;
     this.timeLeft_ = Math.max(0, this.timeLeft_);
@@ -57,6 +59,7 @@ class Timer {
     this.tick_(this.epoch_);
   }
   pause() {
+    if (!this.running_) return;
     this.update_();
     this.running_ = false;
   }
