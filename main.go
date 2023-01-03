@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"container/ring"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/gorilla/websocket"
@@ -142,7 +143,7 @@ func (h *hub) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		for {
 			err := conn.WriteMessage(websocket.TextMessage, <-send)
-			if err != websocket.ErrCloseSent && err != syscall.EPIPE {
+			if err != websocket.ErrCloseSent && !errors.Is(err, syscall.EPIPE) {
 				ok(err)
 			}
 		}
