@@ -20,6 +20,7 @@ class TimerView {
     this.onUpdate(initTimeLeft);
     el.appendChild(this.el_);
   }
+
   onUpdate(timeLeft) {
     const frac = timeLeft / this.initTimeLeft_;
     this.el_.style.height = this.maxHeight_ * frac + 'px';
@@ -39,6 +40,27 @@ class Timer {
     this.running_ = false;
     this.epoch_ = 0;
   }
+
+  start() {
+    if (this.running_) return;
+    this.lastUpdateTime_ = Date.now();
+    this.running_ = true;
+    this.epoch_++;
+    this.tick_(this.epoch_);
+  }
+
+  pause() {
+    if (!this.running_) return;
+    this.update_();
+    this.running_ = false;
+  }
+
+  reset() {
+    this.timeLeft_ = this.initTimeLeft_;
+    this.view_.onUpdate(this.timeLeft_);
+    this.running_ = false;
+  }
+
   update_() {
     console.assert(this.running_);
     const now = Date.now();
@@ -51,23 +73,7 @@ class Timer {
       this.onFire_();
     }
   }
-  start() {
-    if (this.running_) return;
-    this.lastUpdateTime_ = Date.now();
-    this.running_ = true;
-    this.epoch_++;
-    this.tick_(this.epoch_);
-  }
-  pause() {
-    if (!this.running_) return;
-    this.update_();
-    this.running_ = false;
-  }
-  reset() {
-    this.timeLeft_ = this.initTimeLeft_;
-    this.view_.onUpdate(this.timeLeft_);
-    this.running_ = false;
-  }
+
   tick_(epoch) {
     if (!this.running_ || epoch !== this.epoch_) return;
     this.update_();
