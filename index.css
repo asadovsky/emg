@@ -15,6 +15,9 @@ body {
   bottom: 100px;
   left: 0;
   right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 #bottom {
@@ -25,11 +28,8 @@ body {
   height: 100px;
 }
 
-#main div {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+#player-wrapper {
+  position: relative;
 }
 
 #player,
@@ -38,6 +38,9 @@ body {
 }
 
 #timer {
-  position: relative;
-  width: 10px;
+  position: absolute;
+  top: 0;
+  left: 100%;
+  margin-left: 100px;
+  width: 100px;
 }

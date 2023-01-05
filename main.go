@@ -46,7 +46,7 @@ type hub struct {
 	variance    float32
 }
 
-const windowSize = 1000
+const windowSize = 100 // 1 second of sensor readings
 
 func newHub() *hub {
 	return &hub{

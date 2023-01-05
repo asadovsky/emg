@@ -108,7 +108,6 @@ function onYouTubeIframeAPIReady() {  // jshint ignore:line
             timer.start();
             break;
           }
-          case 0:
           case 2: {
             timer.pause();
             break;
@@ -133,5 +132,12 @@ const socket = new WebSocket('ws://' + document.location.host + '/ws');
 socket.onclose = () => {};
 socket.onmessage = ev => {
   const u = JSON.parse(ev.data);
-  ts.append(new Date(u.Time), u.Value);
+  ts.append(new Date(u.Time), u.SigmaRatio);
+  if (u.SigmaRatio > 2) {
+    timer.reset();
+    timer.start();
+    if (player && player.getPlayerState() === 2) {
+      player.playVideo();
+    }
+  }
 };
