@@ -1,31 +1,31 @@
+:root {
+  --player-width: 800px;
+  --player-height: calc(var(--player-width) * 9 / 16);
+}
+
 *,
 :before,
 :after {
   box-sizing: border-box;
 }
 
+html,
+body {
+  height: 100%;
+}
+
 body {
   background-color: black;
   margin: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 #main {
-  position: fixed;
-  top: 0;
-  bottom: 100px;
-  left: 0;
-  right: 0;
+  flex: auto;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-#bottom {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 100px;
 }
 
 #player-wrapper {
@@ -37,10 +37,24 @@ body {
   display: block;
 }
 
+#player {
+  width: var(--player-width);
+  height: var(--player-height);
+}
+
 #timer {
   position: absolute;
   top: 0;
   left: 100%;
   margin-left: 100px;
   width: 100px;
+  height: var(--player-height);
+}
+
+#plot-wrapper {
+  height: 200px;
+}
+#plot {
+  width: 100%;
+  height: 100%;
 }

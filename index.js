@@ -1,13 +1,5 @@
-const playerEl = document.getElementById('player');
 const timerEl = document.getElementById('timer');
 const plotEl = document.getElementById('plot');
-
-const w = 800;
-playerEl.style.width = w + 'px';
-playerEl.style.height = w * (9 / 16) + 'px';
-timerEl.style.height = playerEl.style.height;
-plotEl.width = window.innerWidth;
-plotEl.height = plotEl.parentElement.offsetHeight;
 
 class TimerView {
   constructor(el, initTimeLeft) {
@@ -123,16 +115,18 @@ const scriptEl = document.createElement('script');
 scriptEl.src = 'https://www.youtube.com/iframe_api';
 document.head.appendChild(scriptEl);
 
-const smoothie = new SmoothieChart({grid: {strokeStyle: '#333'}});
+const smoothie = new SmoothieChart({
+  responsive: true, grid: {strokeStyle: '#333'}
+});
 smoothie.streamTo(plotEl);
 const ts = new TimeSeries();
-smoothie.addTimeSeries(ts, {lineWidth: 2, strokeStyle: '#660'});
+smoothie.addTimeSeries(ts, {lineWidth: 2, strokeStyle: '#990'});
 
 const socket = new WebSocket('ws://' + document.location.host + '/ws');
 socket.onclose = () => {};
 socket.onmessage = ev => {
   const u = JSON.parse(ev.data);
-  ts.append(new Date(u.Time), u.SigmaRatio);
+  ts.append(new Date(u.Time), true ? u.Value : u.SigmaRatio);
   if (u.SigmaRatio > 2) {
     timer.reset();
     timer.start();
