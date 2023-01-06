@@ -51,11 +51,7 @@ body {
   height: var(--player-height);
 }
 
-#plot-wrapper {
-  height: 200px;
-}
-
 #plot {
   width: 100%;
-  height: 100%;
+  height: 200px;
 }
