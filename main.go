@@ -8,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/gorilla/websocket"
-	"log"
 	"math"
 	"net/http"
 	"os"
@@ -33,6 +32,10 @@ type Update struct {
 	Time       int64
 	Value      float32
 	SigmaRatio float32
+}
+
+type Label struct {
+	Time int64
 }
 
 type hub struct {
@@ -149,10 +152,14 @@ func (h *hub) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	_, buf, err := conn.ReadMessage()
-	if !websocket.IsCloseError(err, websocket.CloseGoingAway) {
+	for {
+		_, buf, err := conn.ReadMessage()
+		if websocket.IsCloseError(err, websocket.CloseGoingAway) {
+			break
+		}
 		ok(err)
-		log.Fatalf("unexpected message from client: %v", buf)
+		var l Label
+		ok(json.Unmarshal(buf, &l))
 	}
 
 	h.unsubscribe <- send

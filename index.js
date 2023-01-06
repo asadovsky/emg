@@ -115,18 +115,21 @@ const scriptEl = document.createElement('script');
 scriptEl.src = 'https://www.youtube.com/iframe_api';
 document.head.appendChild(scriptEl);
 
-const smoothie = new SmoothieChart({
-  responsive: true, grid: {strokeStyle: '#333'}
-});
-smoothie.streamTo(plotEl);
+const scOpts = {
+  responsive: true,
+  grid: {strokeStyle: '#333', verticalSections: 0}
+};
+
+const sc = new SmoothieChart(scOpts);
+sc.streamTo(plotEl);
 const ts = new TimeSeries();
-smoothie.addTimeSeries(ts, {lineWidth: 2, strokeStyle: '#990'});
+sc.addTimeSeries(ts, {lineWidth: 2, strokeStyle: '#990'});
 
 const socket = new WebSocket('ws://' + document.location.host + '/ws');
 socket.onclose = () => {};
 socket.onmessage = ev => {
   const u = JSON.parse(ev.data);
-  ts.append(new Date(u.Time), true ? u.Value : u.SigmaRatio);
+  ts.append(new Date(u.Time), u.Value);
   if (u.SigmaRatio > 2) {
     timer.reset();
     timer.start();
