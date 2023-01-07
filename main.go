@@ -31,18 +31,15 @@ func ok(err error, v ...interface{}) {
 type Update struct {
 	Time       int64
 	Value      float32
+	Label      bool
 	SigmaRatio float32
-}
-
-type Label struct {
-	Time int64
 }
 
 type hub struct {
 	clients     map[chan<- []byte]bool
 	subscribe   chan chan<- []byte
 	unsubscribe chan chan<- []byte
-	broadcast   chan []byte
+	broadcast   chan *Update
 	r           *ring.Ring
 	n           int
 	mean        float32
@@ -56,15 +53,24 @@ func newHub() *hub {
 		clients:     make(map[chan<- []byte]bool),
 		subscribe:   make(chan chan<- []byte),
 		unsubscribe: make(chan chan<- []byte),
-		broadcast:   make(chan []byte),
+		broadcast:   make(chan *Update),
 		r:           ring.New(windowSize),
 	}
 }
 
-func (h *hub) handleUpdate(value float32) error {
-	var sigmaRatio float32 = -1
-	if h.n == windowSize && h.variance > 0 {
-		sigmaRatio = float32(math.Abs(float64(value-h.mean)) / math.Sqrt(float64(h.variance)))
+func (h *hub) handleUpdate(u *Update) ([]byte, error) {
+	u.Time = time.Now().UnixMilli()
+	if u.Label {
+		return json.Marshal(u)
+	}
+	value := u.Value
+	u.SigmaRatio = -1
+	if h.n == windowSize {
+		if h.variance == 0 {
+			u.SigmaRatio = math.MaxFloat32
+		} else {
+			u.SigmaRatio = float32(math.Abs(float64(value-h.mean)) / math.Sqrt(float64(h.variance)))
+		}
 	}
 	oldMean := h.mean
 	if h.n < windowSize {
@@ -83,16 +89,7 @@ func (h *hub) handleUpdate(value float32) error {
 	}
 	h.r.Value = value
 	h.r = h.r.Next()
-	buf, err := json.Marshal(&Update{
-		Time:       time.Now().UnixMilli(),
-		Value:      value,
-		SigmaRatio: sigmaRatio,
-	})
-	if err != nil {
-		return err
-	}
-	h.broadcast <- buf
-	return nil
+	return json.Marshal(u)
 }
 
 func (h *hub) listen() {
@@ -100,7 +97,7 @@ func (h *hub) listen() {
 		startTime := time.Now().UnixMilli()
 		for {
 			t := float64(time.Now().UnixMilli()-startTime) / 1000
-			ok(h.handleUpdate(float32(100 * math.Sin(2*math.Pi*t))))
+			h.broadcast <- &Update{Value: float32(100 * math.Sin(2*math.Pi*t))}
 			time.Sleep(10 * time.Millisecond)
 		}
 	} else {
@@ -112,7 +109,7 @@ func (h *hub) listen() {
 				for scanner.Scan() {
 					v, err := strconv.ParseFloat(scanner.Text(), 32)
 					ok(err)
-					ok(h.handleUpdate(float32(v)))
+					h.broadcast <- &Update{Value: float32(v)}
 				}
 				ok(scanner.Err())
 			}
@@ -129,9 +126,11 @@ func (h *hub) run() {
 			h.clients[c] = true
 		case c := <-h.unsubscribe:
 			delete(h.clients, c)
-		case msg := <-h.broadcast:
+		case u := <-h.broadcast:
+			buf, err := h.handleUpdate(u)
+			ok(err)
 			for send := range h.clients {
-				send <- msg
+				send <- buf
 			}
 		}
 	}
@@ -153,13 +152,12 @@ func (h *hub) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	for {
-		_, buf, err := conn.ReadMessage()
+		_, _, err := conn.ReadMessage()
 		if websocket.IsCloseError(err, websocket.CloseGoingAway) {
 			break
 		}
 		ok(err)
-		var l Label
-		ok(json.Unmarshal(buf, &l))
+		h.broadcast <- &Update{Label: true}
 	}
 
 	h.unsubscribe <- send
