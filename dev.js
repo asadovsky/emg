@@ -3,7 +3,7 @@ const plotLabelsEl = document.getElementById('plot-labels');
 
 const scOpts = {
   responsive: true,
-  grid: {strokeStyle: '#333', verticalSections: 0}
+  grid: {strokeStyle: '#333', verticalSections: 0},
 };
 
 const scValues = new SmoothieChart(scOpts);
@@ -20,7 +20,7 @@ scLabels.addTimeSeries(tsPreds, {lineWidth: 2, strokeStyle: '#66f'});
 
 const socket = new WebSocket('ws://' + document.location.host + '/ws');
 socket.onclose = () => {};
-socket.onmessage = ev => {
+socket.onmessage = (ev) => {
   const u = JSON.parse(ev.data);
   if (u.Reset) {
     tsValues.clear();

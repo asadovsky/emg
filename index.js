@@ -16,8 +16,8 @@ class TimerView {
     const frac = timeLeft / this.initTimeLeft_;
     this.el_.style.height = 100 * frac + '%';
     const colors = ['crimson', 'goldenrod', 'seagreen'];
-    this.el_.style.backgroundColor = colors[
-      frac === 1 ? colors.length - 1 : Math.trunc(colors.length * frac)];
+    this.el_.style.backgroundColor =
+      colors[frac === 1 ? colors.length - 1 : Math.trunc(colors.length * frac)];
   }
 }
 
@@ -69,18 +69,24 @@ class Timer {
     if (!this.running_ || epoch !== this.epoch_) return;
     this.update_();
     if (this.running_) {
-      window.requestAnimationFrame(() => {this.tick_(epoch);});
+      window.requestAnimationFrame(() => {
+        this.tick_(epoch);
+      });
     }
   }
 }
 
 let player;
 
-const timer = new Timer(timerEl, 5, () => {player.pauseVideo();});
+const timer = new Timer(timerEl, 5, () => {
+  player.pauseVideo();
+});
 
 // https://developers.google.com/youtube/iframe_api_reference
-function onYouTubeIframeAPIReady() {  // jshint ignore:line
-  player = new YT.Player('player', {  // jshint ignore:line
+// jshint unused:false
+function onYouTubeIframeAPIReady() {
+  // jshint unused:true
+  player = new YT.Player('player', {
     videoId: 'p_LVOPX37SY',
     playerVars: {
       controls: 0,
@@ -88,11 +94,13 @@ function onYouTubeIframeAPIReady() {  // jshint ignore:line
       fs: 0,
       modestbranding: 1,
       mute: 1,
-      rel: 0
+      rel: 0,
     },
     events: {
-      onReady: ev => {ev.target.playVideo();},
-      onStateChange: ev => {
+      onReady: (ev) => {
+        ev.target.playVideo();
+      },
+      onStateChange: (ev) => {
         switch (ev.data) {
           case 1: {
             timer.reset();
@@ -105,8 +113,10 @@ function onYouTubeIframeAPIReady() {  // jshint ignore:line
           }
         }
       },
-      onError: ev => {console.error(ev.data);}
-    }
+      onError: (ev) => {
+        console.error(ev.data);
+      },
+    },
   });
 }
 
@@ -116,7 +126,7 @@ document.head.appendChild(scriptEl);
 
 const scOpts = {
   responsive: true,
-  grid: {strokeStyle: '#333', verticalSections: 0}
+  grid: {strokeStyle: '#333', verticalSections: 0},
 };
 
 const sc = new SmoothieChart(scOpts);
@@ -126,7 +136,7 @@ sc.addTimeSeries(ts, {lineWidth: 2, strokeStyle: '#990'});
 
 const socket = new WebSocket('ws://' + document.location.host + '/ws');
 socket.onclose = () => {};
-socket.onmessage = ev => {
+socket.onmessage = (ev) => {
   const u = JSON.parse(ev.data);
   if (u.Pred) {
     timer.reset();
@@ -137,3 +147,10 @@ socket.onmessage = ev => {
   }
   ts.append(new Date(u.Time), u.Value);
 };
+
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'p' && !ev.repeat) {
+    plotEl.style.display =
+      window.getComputedStyle(plotEl).display === 'none' ? 'block' : 'none';
+  }
+});

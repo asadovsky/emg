@@ -14,8 +14,10 @@ listen:
 .PHONY: fmt
 fmt:
 	gofmt -s -w .
+	prettier --write .
 
 .PHONY: lint
 lint:
 	go vet ./...
+	prettier --check .
 	jshint .

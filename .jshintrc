@@ -26,6 +26,7 @@
 
   "globals": {
     "SmoothieChart": false,
-    "TimeSeries": false
+    "TimeSeries": false,
+    "YT": false
   }
 }
