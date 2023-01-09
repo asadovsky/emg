@@ -83,9 +83,7 @@ const timer = new Timer(timerEl, 5, () => {
 });
 
 // https://developers.google.com/youtube/iframe_api_reference
-// jshint unused:false
 function onYouTubeIframeAPIReady() {
-  // jshint unused:true
   player = new YT.Player('player', {
     videoId: 'p_LVOPX37SY',
     playerVars: {
