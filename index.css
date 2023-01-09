@@ -1,8 +1,3 @@
-:root {
-  --player-width: 800px;
-  --player-height: calc(var(--player-width) * 9 / 16);
-}
-
 *,
 :before,
 :after {
@@ -24,14 +19,6 @@ body {
 #main {
   flex: auto;
   display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-#player-wrapper {
-  position: relative;
-  width: var(--player-width);
-  height: var(--player-height);
 }
 
 iframe,
@@ -40,15 +27,12 @@ canvas {
 }
 
 #player {
-  width: 100%;
+  flex: auto;
   height: 100%;
 }
 
 #timer {
-  position: absolute;
-  top: 0;
-  left: 100%;
-  margin-left: 100px;
+  position: relative;
   width: 100px;
   height: 100%;
 }

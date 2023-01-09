@@ -4,18 +4,17 @@ const plotEl = document.getElementById('plot');
 class TimerView {
   constructor(el, initTimeLeft) {
     this.initTimeLeft_ = initTimeLeft;
-    this.maxHeight_ = el.offsetHeight;
     this.el_ = document.createElement('div');
     this.el_.style.position = 'absolute';
     this.el_.style.bottom = '0';
-    this.el_.style.width = el.offsetWidth + 'px';
+    this.el_.style.width = '100%';
     this.onUpdate(initTimeLeft);
     el.appendChild(this.el_);
   }
 
   onUpdate(timeLeft) {
     const frac = timeLeft / this.initTimeLeft_;
-    this.el_.style.height = this.maxHeight_ * frac + 'px';
+    this.el_.style.height = 100 * frac + '%';
     const colors = ['crimson', 'goldenrod', 'seagreen'];
     this.el_.style.backgroundColor = colors[
       frac === 1 ? colors.length - 1 : Math.trunc(colors.length * frac)];
