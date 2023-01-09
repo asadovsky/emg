@@ -20,7 +20,9 @@ import (
 
 var httpPort = flag.Int("http-port", 4000, "")
 var arduinoPort = flag.String("arduino-port", "", "")
-var fakeData = flag.Bool("fake-data", false, "")
+var fakeData = flag.Bool("fake-data", false, "generate sinusoidal data")
+var recordFile = flag.String("record-file", "", "record data to this file")
+var replayFile = flag.String("replay-file", "", "replay data from this file")
 
 func ok(err error, v ...interface{}) {
 	if err != nil {
@@ -28,11 +30,40 @@ func ok(err error, v ...interface{}) {
 	}
 }
 
+func assert(b bool, v ...interface{}) {
+	if !b {
+		panic(fmt.Sprint(v...))
+	}
+}
+
+func readUpdatesFromFile(name string) ([]Update, error) {
+	f, err := os.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	var res []Update
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		var u Update
+		err := json.Unmarshal(scanner.Bytes(), &u)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, u)
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
 type Update struct {
-	Time       int64
-	Value      float32
-	Label      bool
-	SigmaRatio float32
+	Time  int64
+	Reset bool
+	Value float32
+	Label bool
+	Pred  bool
 }
 
 type hub struct {
@@ -40,6 +71,7 @@ type hub struct {
 	subscribe   chan chan<- []byte
 	unsubscribe chan chan<- []byte
 	broadcast   chan *Update
+	record      chan *Update
 	r           *ring.Ring
 	n           int
 	mean        float32
@@ -54,22 +86,26 @@ func newHub() *hub {
 		subscribe:   make(chan chan<- []byte),
 		unsubscribe: make(chan chan<- []byte),
 		broadcast:   make(chan *Update),
+		record:      make(chan *Update),
 		r:           ring.New(windowSize),
 	}
 }
 
 func (h *hub) handleUpdate(u *Update) ([]byte, error) {
-	u.Time = time.Now().UnixMilli()
+	if u.Time == 0 {
+		u.Time = time.Now().UnixMilli()
+	}
+	if *recordFile != "" {
+		h.record <- u
+	}
 	if u.Label {
 		return json.Marshal(u)
 	}
 	value := u.Value
-	u.SigmaRatio = -1
 	if h.n == windowSize {
-		if h.variance == 0 {
-			u.SigmaRatio = math.MaxFloat32
-		} else {
-			u.SigmaRatio = float32(math.Abs(float64(value-h.mean)) / math.Sqrt(float64(h.variance)))
+		sigmaRatio := float32(math.Abs(float64(value-h.mean)) / math.Sqrt(float64(h.variance)))
+		if sigmaRatio > 2 {
+			u.Pred = true
 		}
 	}
 	oldMean := h.mean
@@ -93,11 +129,28 @@ func (h *hub) handleUpdate(u *Update) ([]byte, error) {
 }
 
 func (h *hub) listen() {
-	if *fakeData {
-		startTime := time.Now().UnixMilli()
+	if *replayFile != "" {
+		updates, err := readUpdatesFromFile(*replayFile)
+		ok(err)
+		assert(len(updates) > 0)
 		for {
-			t := float64(time.Now().UnixMilli()-startTime) / 1000
-			h.broadcast <- &Update{Value: float32(100 * math.Sin(2*math.Pi*t))}
+			startTime := time.Now()
+			firstTime := time.UnixMilli(updates[0].Time)
+			for _, u := range updates {
+				uTime := startTime.Add(time.UnixMilli(u.Time).Sub(firstTime))
+				// Sleep until 5ms before this update should be plotted.
+				time.Sleep(uTime.Sub(time.Now()) - 5*time.Millisecond)
+				h.broadcast <- &Update{Time: uTime.UnixMilli(), Value: u.Value, Label: u.Label}
+			}
+			// Sleep for 1s, then reset.
+			time.Sleep(time.Second)
+			h.broadcast <- &Update{Reset: true}
+		}
+	} else if *fakeData {
+		startTime := time.Now()
+		for {
+			uTime := time.Now()
+			h.broadcast <- &Update{Time: uTime.UnixMilli(), Value: float32(math.Sin(2 * math.Pi * uTime.Sub(startTime).Seconds()))}
 			time.Sleep(10 * time.Millisecond)
 		}
 	} else {
@@ -120,6 +173,20 @@ func (h *hub) listen() {
 
 func (h *hub) run() {
 	go h.listen()
+	if *recordFile != "" {
+		go func() {
+			f, err := os.Create(*recordFile)
+			ok(err)
+			defer f.Close()
+			for {
+				buf, err := json.Marshal(<-h.record)
+				ok(err)
+				buf = append(buf, '\n')
+				_, err = f.Write(buf)
+				ok(err)
+			}
+		}()
+	}
 	for {
 		select {
 		case c := <-h.subscribe:
@@ -167,6 +234,10 @@ func (h *hub) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	flag.Parse()
+	if *replayFile != "" {
+		assert(*recordFile == "")
+		assert(!*fakeData)
+	}
 	h := newHub()
 	go h.run()
 	cwd, err := os.Getwd()

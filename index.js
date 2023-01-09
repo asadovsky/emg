@@ -129,13 +129,12 @@ const socket = new WebSocket('ws://' + document.location.host + '/ws');
 socket.onclose = () => {};
 socket.onmessage = ev => {
   const u = JSON.parse(ev.data);
-  if (u.Label) return;
-  ts.append(new Date(u.Time), u.Value);
-  if (u.SigmaRatio > 2) {
+  if (u.Pred) {
     timer.reset();
     timer.start();
     if (player && player.getPlayerState() === 2) {
       player.playVideo();
     }
   }
+  ts.append(new Date(u.Time), u.Value);
 };

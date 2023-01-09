@@ -15,25 +15,39 @@ const scLabels = new SmoothieChart(scOpts);
 scLabels.streamTo(plotLabelsEl);
 const tsLabels = new TimeSeries();
 scLabels.addTimeSeries(tsLabels, {lineWidth: 2, strokeStyle: '#f00'});
+const tsPreds = new TimeSeries();
+scLabels.addTimeSeries(tsPreds, {lineWidth: 2, strokeStyle: '#66f'});
 
 const socket = new WebSocket('ws://' + document.location.host + '/ws');
 socket.onclose = () => {};
 socket.onmessage = ev => {
   const u = JSON.parse(ev.data);
-  if (u.Label) return;
+  if (u.Reset) {
+    tsValues.clear();
+    tsLabels.clear();
+    tsPreds.clear();
+    return;
+  }
+  if (u.Label) {
+    tsLabels.append(new Date(u.Time), 1);
+    return;
+  }
+  if (u.Pred) {
+    tsPreds.append(new Date(u.Time), 1);
+  }
   tsValues.append(new Date(u.Time), u.Value);
 };
 
 document.addEventListener('keydown', (ev) => {
   if (ev.key === ' ' && !ev.repeat) {
-    const now = Date.now();
-    tsLabels.append(new Date(now), 1);
-    socket.send(JSON.stringify({Time: now}));
+    socket.send('');
   }
 });
 
 function tick() {
-  tsLabels.append(new Date(), 0);
+  const now = new Date();
+  tsLabels.append(now, 0);
+  tsPreds.append(now, 0);
   window.requestAnimationFrame(tick);
 }
 tick();
