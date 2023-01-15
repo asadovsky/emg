@@ -60,10 +60,10 @@ func readUpdatesFromFile(name string) ([]Update, error) {
 
 type Update struct {
 	Time  int64
-	Reset bool
+	Reset bool `json:",omitempty"`
 	Value float32
-	Label bool
-	Pred  bool
+	Label bool `json:",omitempty"`
+	Pred  bool `json:",omitempty"`
 }
 
 type hub struct {
