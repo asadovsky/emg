@@ -27,7 +27,7 @@ We recommend adding this to your `~/.bashrc` file:
 
 Install required packages:
 
-    $ pip install -r requirements.in
+    $ pip install -r requirements.txt
 
 Add a new package (using `numpy` as an example):
 
