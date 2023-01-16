@@ -62,33 +62,28 @@ def compute_metrics(
     return tp, fp, fn
 
 
-def mk_smoothed_values(
-    samples: list[tuple[datetime, float]], window_size: int
-) -> list[tuple[datetime, float]]:
-    ts = [t for t, _ in samples]
-    vs = [v for _, v in samples]
+def mk_smoothed_values(values: list[float], window_size: int) -> list[float]:
     w = window_size
-    smoothed_vs = []
-    for i in range(w, len(vs) - w):
-        smoothed_vs.append(sum(vs[i - w : i + w + 1]) / (2 * w + 1))
-    smoothed_vs = [smoothed_vs[0]] * w + smoothed_vs + [smoothed_vs[-1]] * w
-    return list(zip(ts, smoothed_vs))
+    res: list[float] = []
+    for i in range(w, len(values) - w):
+        res.append(sum(values[i - w : i + w + 1]) / (2 * w + 1))
+    res = [res[0]] * w + res + [res[-1]] * w
+    assert len(res) == len(values)
+    return res
 
 
-def mk_sigma_ratios(samples: list[tuple[datetime, float]], window_size: int):
-    ts = [t for t, _ in samples]
-    vs = [v for _, v in samples]
+def mk_sigma_ratios(values: list[float], window_size: int) -> list[float]:
     w = window_size
-    sigma_ratios = [0] * w
+    res: list[float] = [0] * w
 
     r = deque(maxlen=w)
     n: int = 0
     mean: float = 0
     variance: float = 0
 
-    for v in vs:
+    for v in values:
         if n == w:
-            sigma_ratios.append(abs(v - mean) / (variance**0.5))
+            res.append(abs(v - mean) / (variance**0.5))
         old_mean = mean
         if n < w:
             # Welford's algorithm.
@@ -104,8 +99,14 @@ def mk_sigma_ratios(samples: list[tuple[datetime, float]], window_size: int):
             variance += (v - old_v) * (v - mean + old_v - old_mean) / (w - 1)
         r.append(v)
 
-    assert len(sigma_ratios) == len(vs)
-    return list(zip(ts, sigma_ratios))
+    assert len(res) == len(values)
+    return res
+
+
+def clip(
+    values: list[float], *, lo: float = float("-inf"), hi: float = float("inf")
+) -> list[float]:
+    return [min(hi, max(lo, v)) for v in values]
 
 
 def plot_samples():
