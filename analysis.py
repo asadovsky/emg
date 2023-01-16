@@ -62,7 +62,7 @@ def compute_metrics(
 
 
 def plot_smoothed_values():
-    values, _ = read_values_and_labels("data.jsonl")
+    values, _ = read_values_and_labels("data/fake.jsonl")
     ts = [t for t, _ in values]
     vs = [v for _, v in values]
 
