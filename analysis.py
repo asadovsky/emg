@@ -72,9 +72,14 @@ def mk_smoothed_values(values: list[float], window_size: int) -> list[float]:
     return res
 
 
-def mk_sigma_ratios(values: list[float], window_size: int) -> list[float]:
+def mk_moments(
+    values: list[float], window_size: int
+) -> tuple[list[float], list[float], list[float]]:
+    """Returns (means, variances, sigma ratios)."""
     w = window_size
-    res: list[float] = [0] * w
+    means: list[float] = [0] * w
+    variances: list[float] = [0] * w
+    sigma_ratios: list[float] = [0] * w
 
     r = deque(maxlen=w)
     n: int = 0
@@ -83,7 +88,9 @@ def mk_sigma_ratios(values: list[float], window_size: int) -> list[float]:
 
     for v in values:
         if n == w:
-            res.append(abs(v - mean) / (variance**0.5))
+            means.append(mean)
+            variances.append(variance)
+            sigma_ratios.append((v - mean) / (variance**0.5))
         old_mean = mean
         if n < w:
             # Welford's algorithm.
@@ -99,8 +106,8 @@ def mk_sigma_ratios(values: list[float], window_size: int) -> list[float]:
             variance += (v - old_v) * (v - mean + old_v - old_mean) / (w - 1)
         r.append(v)
 
-    assert len(res) == len(values)
-    return res
+    assert len(means) == len(variances) == len(sigma_ratios) == len(values)
+    return means, variances, sigma_ratios
 
 
 def clip(
@@ -110,9 +117,23 @@ def clip(
 
 
 def plot_samples():
-    samples, labels = read_samples_and_labels("data/julie_3m_electrodes.jsonl")
+    samples, labels = read_samples_and_labels("data/julie_3m_stable.jsonl")
     ts = [t for t, _ in samples]
-    plt.plot(ts, [v for _, v in samples], "y")
-    for label in labels:
-        plt.axvline(x=label, color="r", linestyle="--")
+    vs = [v for _, v in samples]
+    smoothed_values = mk_smoothed_values(vs, 5)
+    _, variances, sigma_ratios = mk_moments(smoothed_values, 50)
+    preds = [ts[i] for i, v in enumerate(sigma_ratios) if v > 3]
+
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True)
+    fig.set_size_inches(20, 10)
+    ax1.plot(ts, clip(smoothed_values, lo=280, hi=320), color="y")
+    ax2.plot(ts, variances, color="y")
+    ax3.plot(ts, sigma_ratios, color="y")
+    ax3.axhline(y=0, color="k", linestyle=":")
+    for t in labels:
+        for ax in [ax1, ax2, ax3]:
+            ax.axvline(x=t, color="r")
+    for t in preds:
+        for ax in [ax1, ax2, ax3]:
+            ax.axvline(x=t, color="g", linestyle=":")
     plt.show()
