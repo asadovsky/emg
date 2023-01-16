@@ -102,12 +102,6 @@ func (h *hub) handleUpdate(u *Update) ([]byte, error) {
 		return json.Marshal(u)
 	}
 	value := u.Value
-	if h.n == windowSize {
-		sigmaRatio := float32(math.Abs(float64(value-h.mean)) / math.Sqrt(float64(h.variance)))
-		if sigmaRatio > 2 {
-			u.Pred = true
-		}
-	}
 	oldMean := h.mean
 	if h.n < windowSize {
 		// Welford's algorithm.
