@@ -31,3 +31,7 @@ lint: node_modules
 	black --check .
 	pyright .
 	pylint --rcfile=.pylintrc .
+
+.PHONY: test
+test:
+	python -m unittest discover . '*_test.py'
