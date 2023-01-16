@@ -1,4 +1,5 @@
 import json
+from collections import deque
 from datetime import datetime, timedelta
 
 import matplotlib.pyplot as plt
@@ -8,15 +9,15 @@ def dt(unix_millis: int) -> datetime:
     return datetime.fromtimestamp(unix_millis / 1000.0)
 
 
-def read_values_and_labels(
+def read_samples_and_labels(
     filename: str,
 ) -> tuple[list[tuple[datetime, float]], list[datetime]]:
     with open(filename) as f:
         lines = f.readlines()
     updates = [json.loads(x) for x in lines]
-    values = [(dt(u["Time"]), u["Value"]) for u in updates if "Label" not in u]
+    samples = [(dt(u["Time"]), u["Value"]) for u in updates if "Label" not in u]
     labels = [dt(u["Time"]) for u in updates if "Label" in u]
-    return values, labels
+    return samples, labels
 
 
 def compute_metrics(
@@ -61,16 +62,56 @@ def compute_metrics(
     return tp, fp, fn
 
 
-def plot_smoothed_values():
-    values, _ = read_values_and_labels("data/fake.jsonl")
-    ts = [t for t, _ in values]
-    vs = [v for _, v in values]
-
-    k = 5
+def mk_smoothed_values(
+    samples: list[tuple[datetime, float]], window_size: int
+) -> list[tuple[datetime, float]]:
+    ts = [t for t, _ in samples]
+    vs = [v for _, v in samples]
+    w = window_size
     smoothed_vs = []
-    for i in range(k, len(vs) - k):
-        smoothed_vs.append(sum(vs[i - k : i + k + 1]) / (2 * k + 1))
+    for i in range(w, len(vs) - w):
+        smoothed_vs.append(sum(vs[i - w : i + w + 1]) / (2 * w + 1))
+    smoothed_vs = [smoothed_vs[0]] * w + smoothed_vs + [smoothed_vs[-1]] * w
+    return list(zip(ts, smoothed_vs))
 
-    plt.plot(ts[k:-k], smoothed_vs, "r")
-    plt.plot(ts, vs, "b")
+
+def mk_sigma_ratios(samples: list[tuple[datetime, float]], window_size: int):
+    ts = [t for t, _ in samples]
+    vs = [v for _, v in samples]
+    w = window_size
+    sigma_ratios = [0] * w
+
+    r = deque(maxlen=w)
+    n: int = 0
+    mean: float = 0
+    variance: float = 0
+
+    for v in vs:
+        if n == w:
+            sigma_ratios.append(abs(v - mean) / (variance**0.5))
+        old_mean = mean
+        if n < w:
+            # Welford's algorithm.
+            n += 1
+            mean += (v - mean) / n
+            variance += (v - mean) * (v - old_mean)
+            if n == w:
+                variance /= w - 1
+        else:
+            # https://jonisalonen.com/2014/efficient-and-accurate-rolling-standard-deviation/
+            old_v = r[0]
+            mean += (v - old_v) / w
+            variance += (v - old_v) * (v - mean + old_v - old_mean) / (w - 1)
+        r.append(v)
+
+    assert len(sigma_ratios) == len(vs)
+    return list(zip(ts, sigma_ratios))
+
+
+def plot_samples():
+    samples, labels = read_samples_and_labels("data/julie_3m_electrodes.jsonl")
+    ts = [t for t, _ in samples]
+    plt.plot(ts, [v for _, v in samples], "y")
+    for label in labels:
+        plt.axvline(x=label, color="r", linestyle="--")
     plt.show()
