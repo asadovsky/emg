@@ -19,9 +19,15 @@ listen:
 fmt: node_modules
 	gofmt -s -w .
 	prettier --write .
+	isort --profile black .
+	black .
 
 .PHONY: lint
 lint: node_modules
 	go vet ./...
 	prettier --check .
 	jshint .
+	isort --profile black --check .
+	black --check .
+	pyright .
+	pylint --rcfile=.pylintrc .

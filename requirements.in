@@ -1,0 +1,6 @@
+black
+black[jupyter]
+isort
+matplotlib
+pylint
+pyright
