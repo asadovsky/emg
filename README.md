@@ -1,5 +1,11 @@
 # emg
 
+## TODO
+
+- Port Python prediction logic to Go
+- Write code to read data from uMyo
+- Write tests for `compute_moments` and `mk_trailing_moments`
+
 ## Environment setup
 
 ### Requirements
