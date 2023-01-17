@@ -81,15 +81,6 @@ def clip(
     return [min(hi, max(lo, v)) for v in values]
 
 
-def mk_smoothed_values(values: list[float], w: int) -> list[float]:
-    res: list[float] = []
-    for i in range(w - 1, len(values)):
-        res.append(sum(values[i - w + 1 : i + 1]) / w)
-    res = [res[0]] * (w - 1) + res
-    assert len(res) == len(values)
-    return res
-
-
 def mk_trailing_moments(values: list[float], w: int) -> tuple[list[float], list[float]]:
     """Returns trailing (means, variances)."""
     means: list[float] = [0] * (w - 1)
@@ -111,6 +102,11 @@ def mk_trailing_moments(values: list[float], w: int) -> tuple[list[float], list[
 
     assert len(means) == len(variances) == len(values)
     return means, variances
+
+
+def mk_smoothed_values(values: list[float], w: int) -> list[float]:
+    means, _ = mk_trailing_moments(values, w)
+    return [means[w - 1]] * (w - 1) + means[w - 1 :]
 
 
 def mk_mean_log_ratios(mean: float, trailing_means: list[float], w: int) -> list[float]:
