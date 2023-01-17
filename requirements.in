@@ -4,5 +4,6 @@ ipykernel
 ipython
 isort
 matplotlib
+notebook
 pylint
 pyright
