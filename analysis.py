@@ -1,5 +1,7 @@
 import json
+import math
 from collections import deque
+from collections.abc import Collection
 from datetime import datetime, timedelta
 
 import matplotlib.pyplot as plt
@@ -62,52 +64,15 @@ def compute_metrics(
     return tp, fp, fn
 
 
-def mk_smoothed_values(values: list[float], window_size: int) -> list[float]:
-    w = window_size
-    res: list[float] = []
-    for i in range(w, len(values) - w):
-        res.append(sum(values[i - w : i + w + 1]) / (2 * w + 1))
-    res = [res[0]] * w + res + [res[-1]] * w
-    assert len(res) == len(values)
-    return res
-
-
-def mk_moments(
-    values: list[float], window_size: int
-) -> tuple[list[float], list[float], list[float]]:
-    """Returns (means, variances, sigma ratios)."""
-    w = window_size
-    means: list[float] = [0] * w
-    variances: list[float] = [0] * w
-    sigma_ratios: list[float] = [0] * w
-
-    r = deque(maxlen=w)
-    n: int = 0
-    mean: float = 0
-    variance: float = 0
-
-    for v in values:
-        if n == w:
-            means.append(mean)
-            variances.append(variance)
-            sigma_ratios.append((v - mean) / (variance**0.5))
+def compute_moments(values: Collection[float]) -> tuple[float, float]:
+    mean, variance = 0, 0
+    for i, v in enumerate(values):
+        # Welford's algorithm.
         old_mean = mean
-        if n < w:
-            # Welford's algorithm.
-            n += 1
-            mean += (v - mean) / n
-            variance += (v - mean) * (v - old_mean)
-            if n == w:
-                variance /= w - 1
-        else:
-            # https://jonisalonen.com/2014/efficient-and-accurate-rolling-standard-deviation/
-            old_v = r[0]
-            mean += (v - old_v) / w
-            variance += (v - old_v) * (v - mean + old_v - old_mean) / (w - 1)
-        r.append(v)
-
-    assert len(means) == len(variances) == len(sigma_ratios) == len(values)
-    return means, variances, sigma_ratios
+        mean += (v - mean) / (i + 1)
+        variance += (v - mean) * (v - old_mean)
+    variance /= len(values) - 1
+    return mean, variance
 
 
 def clip(
@@ -116,20 +81,77 @@ def clip(
     return [min(hi, max(lo, v)) for v in values]
 
 
+def mk_smoothed_values(values: list[float], w: int) -> list[float]:
+    res: list[float] = []
+    for i in range(w - 1, len(values)):
+        res.append(sum(values[i - w + 1 : i + 1]) / w)
+    res = [res[0]] * (w - 1) + res
+    assert len(res) == len(values)
+    return res
+
+
+def mk_trailing_moments(values: list[float], w: int) -> tuple[list[float], list[float]]:
+    """Returns trailing (means, variances)."""
+    means: list[float] = [0] * (w - 1)
+    variances: list[float] = [0] * (w - 1)
+
+    r = deque(values[:w], maxlen=w)
+    mean, variance = compute_moments(r)
+    means.append(mean)
+    variances.append(variance)
+    for v in values[w:]:
+        # https://jonisalonen.com/2014/efficient-and-accurate-rolling-standard-deviation/
+        old_v = r[0]
+        old_mean = mean
+        mean += (v - old_v) / w
+        variance += (v - old_v) * (v - mean + old_v - old_mean) / (w - 1)
+        r.append(v)
+        means.append(mean)
+        variances.append(variance)
+
+    assert len(means) == len(variances) == len(values)
+    return means, variances
+
+
+def mk_mean_log_ratios(mean: float, trailing_means: list[float], w: int) -> list[float]:
+    res: list[float] = [0] * (w - 1)
+    for v in trailing_means[w - 1 :]:
+        res.append(math.log(v) - math.log(mean))
+    assert len(res) == len(trailing_means)
+    return res
+
+
+def mk_preds(
+    ts: list[datetime], variances: list[float], mean_log_ratios: list[float], w: int
+) -> list[bool]:
+    res = []
+    n = 3
+    for i in range(len(variances)):
+        if (
+            i >= (n + 1) * w
+            and variances[i] > 5
+            and mean_log_ratios[i] > 0.01
+            and all(variances[i - (j + 1) * w] < 1 for j in range(n))
+        ):
+            res.append(ts[i])
+    return res
+
+
 def plot_samples():
     samples, labels = read_samples_and_labels("data/julie_3m_stable.jsonl")
     ts = [t for t, _ in samples]
     vs = [v for _, v in samples]
     smoothed_values = mk_smoothed_values(vs, 5)
-    _, variances, sigma_ratios = mk_moments(smoothed_values, 50)
-    preds = [ts[i] for i, v in enumerate(sigma_ratios) if v > 3]
+    w = 20
+    means, variances = mk_trailing_moments(smoothed_values, w)
+    mean_log_ratios = mk_mean_log_ratios(means[w], means, w)
+    preds = mk_preds(ts, variances, mean_log_ratios, w)
 
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True)
     fig.set_size_inches(20, 10)
     ax1.plot(ts, clip(smoothed_values, lo=280, hi=320), color="y")
-    ax2.plot(ts, variances, color="y")
-    ax3.plot(ts, sigma_ratios, color="y")
-    ax3.axhline(y=0, color="k", linestyle=":")
+    ax2.plot(ts, clip(variances, hi=10), color="y")
+    ax3.plot(ts, mean_log_ratios, color="y")
     for t in labels:
         for ax in [ax1, ax2, ax3]:
             ax.axvline(x=t, color="r")
