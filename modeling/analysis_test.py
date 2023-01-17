@@ -4,14 +4,16 @@ import unittest
 from datetime import timedelta
 
 from modeling import analysis
-from modeling.data import dt
+from modeling.data import ms2dt
 
 
 def compute_metrics(
     labels: list[int], preds: list[int], tol: int
 ) -> tuple[int, int, int]:
     return analysis.compute_metrics(
-        [dt(x) for x in labels], [dt(x) for x in preds], timedelta(milliseconds=tol)
+        [ms2dt(x) for x in labels],
+        [ms2dt(x) for x in preds],
+        timedelta(milliseconds=tol),
     )
 
 

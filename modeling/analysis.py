@@ -112,7 +112,7 @@ def mk_preds(
     n = 3
     for i in range(len(variances)):
         if (
-            i >= (n + 1) * w
+            i >= (n + 1) * w - 1
             and variances[i] > 5
             and mean_log_ratios[i] > 0.01
             and all(variances[i - (j + 1) * w] < 1 for j in range(n))
@@ -121,17 +121,19 @@ def mk_preds(
     return res
 
 
-def run():
-    samples, labels = data.read_samples_and_labels("../data/julie_3m_stable.jsonl")
+def run() -> None:
+    samples, labels = data.read_samples_and_labels(
+        "../data/julie_3m_stable.adjusted.jsonl"
+    )
     ts = [t for t, _ in samples]
     vs = [v for _, v in samples]
     smoothed_values = mk_smoothed_values(vs, 5)
     w = 20
     means, variances = mk_trailing_moments(smoothed_values, w)
-    mean_log_ratios = mk_mean_log_ratios(means[w], means, w)
+    mean_log_ratios = mk_mean_log_ratios(means[w - 1], means, w)
     preds = mk_preds(ts, variances, mean_log_ratios, w)
 
-    _, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True, figsize=(20, 10))
+    _, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True, figsize=(20, 9))
     ax1.plot(ts, clip(smoothed_values, lo=280, hi=320), color="y")
     ax2.plot(ts, clip(variances, hi=10), color="y")
     ax3.plot(ts, mean_log_ratios, color="y")
