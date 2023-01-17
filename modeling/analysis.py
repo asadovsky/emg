@@ -107,7 +107,7 @@ def mk_mean_log_ratios(mean: float, trailing_means: list[float], w: int) -> list
 
 def mk_preds(
     ts: list[datetime], variances: list[float], mean_log_ratios: list[float], w: int
-) -> list[bool]:
+) -> list[datetime]:
     res = []
     n = 3
     for i in range(len(variances)):
