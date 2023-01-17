@@ -3,8 +3,8 @@
 import unittest
 from datetime import timedelta
 
-import analysis
-from analysis import dt
+from modeling import analysis
+from modeling.data import dt
 
 
 def compute_metrics(

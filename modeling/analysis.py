@@ -1,4 +1,5 @@
-import json
+"""Data analysis code."""
+
 import math
 from collections import deque
 from collections.abc import Collection
@@ -6,20 +7,7 @@ from datetime import datetime, timedelta
 
 import matplotlib.pyplot as plt
 
-
-def dt(unix_millis: int) -> datetime:
-    return datetime.fromtimestamp(unix_millis / 1000.0)
-
-
-def read_samples_and_labels(
-    filename: str,
-) -> tuple[list[tuple[datetime, float]], list[datetime]]:
-    with open(filename) as f:
-        lines = f.readlines()
-    updates = [json.loads(x) for x in lines]
-    samples = [(dt(u["Time"]), u["Value"]) for u in updates if "Label" not in u]
-    labels = [dt(u["Time"]) for u in updates if "Label" in u]
-    return samples, labels
+from modeling import data
 
 
 def compute_metrics(
@@ -133,8 +121,8 @@ def mk_preds(
     return res
 
 
-def plot_samples():
-    samples, labels = read_samples_and_labels("data/julie_3m_stable.jsonl")
+def run():
+    samples, labels = data.read_samples_and_labels("../data/julie_3m_stable.jsonl")
     ts = [t for t, _ in samples]
     vs = [v for _, v in samples]
     smoothed_values = mk_smoothed_values(vs, 5)
@@ -143,8 +131,7 @@ def plot_samples():
     mean_log_ratios = mk_mean_log_ratios(means[w], means, w)
     preds = mk_preds(ts, variances, mean_log_ratios, w)
 
-    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True)
-    fig.set_size_inches(20, 10)
+    _, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True, figsize=(20, 10))
     ax1.plot(ts, clip(smoothed_values, lo=280, hi=320), color="y")
     ax2.plot(ts, clip(variances, hi=10), color="y")
     ax3.plot(ts, mean_log_ratios, color="y")

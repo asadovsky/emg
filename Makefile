@@ -1,6 +1,9 @@
 SHELL := /bin/bash -euo pipefail
 PATH := node_modules/.bin:$(PATH)
 
+# All non-deleted files.
+ALL_PY_FILES := $(shell comm -23 <(git ls-files -c -o --exclude-standard '*.py' | sort) <(git ls-files -d | sort))
+
 .DELETE_ON_ERROR:
 
 .PHONY: clean
@@ -30,7 +33,7 @@ lint: node_modules
 	isort --profile black --check .
 	black --check .
 	pyright .
-	pylint --rcfile=.pylintrc .
+	pylint $(ALL_PY_FILES) --rcfile=.pylintrc
 
 .PHONY: test
 test:

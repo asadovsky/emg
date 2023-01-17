@@ -35,6 +35,13 @@ Add a new package (using `numpy` as an example):
     $ pip install -r requirements.in
     $ pip freeze > requirements.txt
 
+### Jupyter
+
+Add root directory to `sys.path`:
+
+    import sys
+    sys.path.append("/Users/sadovsky/dev/emg")
+
 ## Resources
 
 - https://en.wikipedia.org/wiki/Dynamic_time_warping
