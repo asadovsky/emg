@@ -1,5 +1,7 @@
 black
 black[jupyter]
+ipykernel
+ipython
 isort
 matplotlib
 pylint
