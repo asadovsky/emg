@@ -37,7 +37,5 @@ def write_samples_and_labels(
         updates.append({"Time": dt2ms(label), "Label": True})
     with open(filename, "w", encoding="utf-8") as f:
         for u in updates:
-            if "Label" in u:
-                u["Value"] = 0
             json.dump(u, f, separators=(",", ":"))
             f.write("\n")

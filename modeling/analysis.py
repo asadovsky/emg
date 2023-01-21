@@ -97,11 +97,12 @@ def mk_smoothed_values(values: list[float], w: int) -> list[float]:
     return [means[w - 1]] * (w - 1) + means[w - 1 :]
 
 
-def mk_mean_log_ratios(mean: float, trailing_means: list[float], w: int) -> list[float]:
+def mk_mean_log_ratios(means: list[float], w: int) -> list[float]:
+    initial_mean = means[w - 1]
     res: list[float] = [0] * (w - 1)
-    for v in trailing_means[w - 1 :]:
-        res.append(math.log(v) - math.log(mean))
-    assert len(res) == len(trailing_means)
+    for v in means[w - 1 :]:
+        res.append(math.log(v) - math.log(initial_mean))
+    assert len(res) == len(means)
     return res
 
 
@@ -110,10 +111,9 @@ def mk_preds(
 ) -> list[datetime]:
     res = []
     n = 3
-    for i in range(len(variances)):
+    for i in range(n * w, len(variances)):
         if (
-            i >= (n + 1) * w - 1
-            and variances[i] > 5
+            variances[i] > 5
             and mean_log_ratios[i] > 0.01
             and all(variances[i - (j + 1) * w] < 1 for j in range(n))
         ):
@@ -130,7 +130,7 @@ def run() -> None:
     smoothed_values = mk_smoothed_values(vs, 5)
     w = 20
     means, variances = mk_trailing_moments(smoothed_values, w)
-    mean_log_ratios = mk_mean_log_ratios(means[w - 1], means, w)
+    mean_log_ratios = mk_mean_log_ratios(means, w)
     preds = mk_preds(ts, variances, mean_log_ratios, w)
 
     _, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True, figsize=(20, 9))
