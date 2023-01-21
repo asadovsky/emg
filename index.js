@@ -130,7 +130,11 @@ const scOpts = {
 const sc = new SmoothieChart(scOpts);
 sc.streamTo(plotEl);
 const ts = new TimeSeries();
-sc.addTimeSeries(ts, {lineWidth: 2, strokeStyle: '#990'});
+sc.addTimeSeries(ts, {
+  lineWidth: 2,
+  strokeStyle: '#990',
+  interpolation: 'linear',
+});
 
 const socket = new WebSocket('ws://' + document.location.host + '/ws');
 socket.onclose = () => {};
