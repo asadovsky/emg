@@ -189,10 +189,10 @@ func (h *hub) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		for {
 			err := conn.WriteMessage(websocket.TextMessage, <-send)
-			if err != websocket.ErrCloseSent && !errors.Is(err, syscall.EPIPE) {
-				ok(err)
+			if err == websocket.ErrCloseSent || errors.Is(err, syscall.EPIPE) {
+				break
 			}
-			// FIXME: Exit the goroutine when the connection closes.
+			ok(err)
 		}
 	}()
 
