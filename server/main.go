@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"embed"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -57,12 +58,12 @@ func readUpdatesFromFile(name string) ([]Update, error) {
 	return res, nil
 }
 
-func streamUpdatesToFile(name string, ch <-chan *Update) {
+func streamUpdatesToFile(name string, c <-chan *Update) {
 	f, err := os.Create(*recordFile)
 	ok(err)
 	defer f.Close()
-	for {
-		buf, err := json.Marshal(<-ch)
+	for u := range c {
+		buf, err := json.Marshal(u)
 		ok(err)
 		buf = append(buf, '\n')
 		_, err = f.Write(buf)
@@ -187,8 +188,8 @@ func (h *hub) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	h.subscribe <- send
 
 	go func() {
-		for {
-			err := conn.WriteMessage(websocket.TextMessage, <-send)
+		for buf := range send {
+			err := conn.WriteMessage(websocket.TextMessage, buf)
 			if err == websocket.ErrCloseSent || errors.Is(err, syscall.EPIPE) {
 				break
 			}
@@ -210,6 +211,9 @@ func (h *hub) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn.Close()
 }
 
+//go:embed *.css *.html *.js
+var content embed.FS
+
 func main() {
 	flag.Parse()
 	if *replayFile != "" {
@@ -218,9 +222,7 @@ func main() {
 	}
 	h := newHub()
 	go h.run()
-	cwd, err := os.Getwd()
-	ok(err)
-	http.Handle("/", http.FileServer(http.Dir(cwd)))
+	http.Handle("/", http.FileServer(http.FS(content)))
 	http.HandleFunc("/ws", h.handleWebSocket)
 	httpAddr := fmt.Sprintf("localhost:%d", *httpPort)
 	ok(http.ListenAndServe(httpAddr, nil))

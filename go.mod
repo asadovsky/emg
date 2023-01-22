@@ -1,4 +1,4 @@
-module main
+module github.com/asadovsky/emg
 
 go 1.19
 

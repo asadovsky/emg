@@ -14,6 +14,10 @@ clean:
 upload:
 	arduino-cli compile arduino/$(ARDUINO_SKETCH) -b arduino:avr:uno -p $(ARDUINO_PORT) -u
 
+.PHONY: run
+run:
+	go run ./server --arduino-port $(ARDUINO_PORT)
+
 .PHONY: fmt
 fmt: node_modules
 	gofmt -s -w .
@@ -23,6 +27,7 @@ fmt: node_modules
 
 .PHONY: lint
 lint: node_modules
+	go vet ./...
 	prettier --check .
 	jshint .
 	isort --profile black --check .
