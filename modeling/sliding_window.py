@@ -38,12 +38,14 @@ class SlidingWindow:
         else:
             old_mean = self._mean
             if not self.full():
+                # Welford's algorithm.
                 self._n += 1
                 self._mean += (value - self._mean) / self._n
                 self._variance += (value - self._mean) * (value - old_mean)
                 if self.full():
                     self._variance /= self._n - 1
             else:
+                # https://jonisalonen.com/2014/efficient-and-accurate-rolling-standard-deviation/
                 old_value = self.get(1 - self._window_size)
                 self._mean += (value - old_value) / self._n
                 self._variance += (
