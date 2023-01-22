@@ -3,4 +3,4 @@
 .venv
 __pycache__
 node_modules
-smoothie.js
+server/smoothie.js
