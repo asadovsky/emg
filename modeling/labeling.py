@@ -26,9 +26,7 @@ def adjust_labels(
 
 
 def run(write: bool = False) -> None:
-    samples, labels = data.read_samples_and_labels(
-        "../data/julie_3m_stable.jsonl"
-    )
+    samples, labels = data.read_samples_and_labels("../data/julie_3m_stable.jsonl")
     ts = [t for t, _ in samples]
     stats = StreamStats()
     for _, v in samples:
