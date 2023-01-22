@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"container/ring"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -58,12 +57,25 @@ func readUpdatesFromFile(name string) ([]Update, error) {
 	return res, nil
 }
 
+func streamUpdatesToFile(name string, ch <-chan *Update) {
+	f, err := os.Create(*recordFile)
+	ok(err)
+	defer f.Close()
+	for {
+		buf, err := json.Marshal(<-ch)
+		ok(err)
+		buf = append(buf, '\n')
+		_, err = f.Write(buf)
+		ok(err)
+	}
+}
+
 type Update struct {
 	Time  int64
-	Reset bool `json:",omitempty"`
-	Value float32
-	Label bool `json:",omitempty"`
-	Pred  bool `json:",omitempty"`
+	Reset bool     `json:",omitempty"`
+	Value *float32 `json:",omitempty"`
+	Label bool     `json:",omitempty"`
+	Pred  bool     `json:",omitempty"`
 }
 
 type hub struct {
@@ -72,13 +84,8 @@ type hub struct {
 	unsubscribe chan chan<- []byte
 	broadcast   chan *Update
 	record      chan *Update
-	r           *ring.Ring
-	n           int
-	mean        float32
-	variance    float32
+	stats       *StreamStats
 }
-
-const windowSize = 100 // 1 second of sensor readings
 
 func newHub() *hub {
 	return &hub{
@@ -87,7 +94,7 @@ func newHub() *hub {
 		unsubscribe: make(chan chan<- []byte),
 		broadcast:   make(chan *Update),
 		record:      make(chan *Update),
-		r:           ring.New(windowSize),
+		stats:       NewStreamStats(),
 	}
 }
 
@@ -98,27 +105,12 @@ func (h *hub) handleUpdate(u *Update) ([]byte, error) {
 	if *recordFile != "" {
 		h.record <- u
 	}
-	if u.Label {
-		return json.Marshal(u)
-	}
-	value := u.Value
-	oldMean := h.mean
-	if h.n < windowSize {
-		// Welford's algorithm.
-		h.n++
-		h.mean += (value - h.mean) / float32(h.n)
-		h.variance += (value - h.mean) * (value - oldMean)
-		if h.n == windowSize {
-			h.variance /= windowSize - 1
+	if u.Value != nil {
+		h.stats.Push(*u.Value)
+		if h.stats.Full() {
+			u.Pred = h.stats.Pred()
 		}
-	} else {
-		// https://jonisalonen.com/2014/efficient-and-accurate-rolling-standard-deviation/
-		oldValue := h.r.Value.(float32)
-		h.mean += (value - oldValue) / windowSize
-		h.variance += (value - oldValue) * (value - h.mean + oldValue - oldMean) / (windowSize - 1)
 	}
-	h.r.Value = value
-	h.r = h.r.Next()
 	return json.Marshal(u)
 }
 
@@ -144,7 +136,8 @@ func (h *hub) listen() {
 		startTime := time.Now()
 		for {
 			uTime := time.Now()
-			h.broadcast <- &Update{Time: uTime.UnixMilli(), Value: float32(math.Sin(2 * math.Pi * uTime.Sub(startTime).Seconds()))}
+			v := float32(math.Sin(2 * math.Pi * uTime.Sub(startTime).Seconds()))
+			h.broadcast <- &Update{Time: uTime.UnixMilli(), Value: &v}
 			time.Sleep(10 * time.Millisecond)
 		}
 	} else {
@@ -154,9 +147,10 @@ func (h *hub) listen() {
 				ok(err)
 				scanner := bufio.NewScanner(stream)
 				for scanner.Scan() {
-					v, err := strconv.ParseFloat(scanner.Text(), 32)
+					f, err := strconv.ParseFloat(scanner.Text(), 32)
 					ok(err)
-					h.broadcast <- &Update{Value: float32(v)}
+					v := float32(f)
+					h.broadcast <- &Update{Value: &v}
 				}
 				ok(scanner.Err())
 			}
@@ -168,18 +162,7 @@ func (h *hub) listen() {
 func (h *hub) run() {
 	go h.listen()
 	if *recordFile != "" {
-		go func() {
-			f, err := os.Create(*recordFile)
-			ok(err)
-			defer f.Close()
-			for {
-				buf, err := json.Marshal(<-h.record)
-				ok(err)
-				buf = append(buf, '\n')
-				_, err = f.Write(buf)
-				ok(err)
-			}
-		}()
+		go streamUpdatesToFile(*recordFile, h.record)
 	}
 	for {
 		select {
@@ -209,6 +192,7 @@ func (h *hub) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			if err != websocket.ErrCloseSent && !errors.Is(err, syscall.EPIPE) {
 				ok(err)
 			}
+			// FIXME: Exit the goroutine when the connection closes.
 		}
 	}()
 

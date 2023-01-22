@@ -14,9 +14,9 @@ clean:
 upload:
 	arduino-cli compile arduino/$(ARDUINO_SKETCH) -b arduino:avr:uno -p $(ARDUINO_PORT) -u
 
-.PHONY: listen
-listen:
-	go run main.go --arduino-port $(ARDUINO_PORT)
+.PHONY: run
+run:
+	go run . --arduino-port $(ARDUINO_PORT)
 
 .PHONY: fmt
 fmt: node_modules
