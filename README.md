@@ -3,7 +3,6 @@
 ## TODO
 
 - Write code to read data from uMyo
-- Write tests for `SlidingWindow` and `StreamStats`
 
 ## Environment setup
 
