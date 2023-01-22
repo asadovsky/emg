@@ -18,6 +18,10 @@ func NewSlidingWindow(windowSize int, trackStats bool) *SlidingWindow {
 	}
 }
 
+func (s *SlidingWindow) Size() int {
+	return s.n
+}
+
 func (s *SlidingWindow) Full() bool {
 	return s.n == s.windowSize
 }
@@ -37,12 +41,12 @@ func (s *SlidingWindow) Variance() float32 {
 
 func (s *SlidingWindow) Push(value float32) {
 	s.i = (s.i + 1) % s.windowSize
-	oldMean := s.mean
 	if !s.trackStats {
 		if !s.Full() {
 			s.n++
 		}
 	} else {
+		oldMean := s.mean
 		if !s.Full() {
 			// Welford's algorithm.
 			s.n++

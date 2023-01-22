@@ -68,14 +68,18 @@ def run() -> None:
         if stats.full() and stats.pred():
             preds.append(t)
 
+    smoothed_values = stats.smoothed_stats.values()
+    variances = stats.variances.values()
+    mean_log_ratios = stats.mean_log_ratios.values()
+
     _, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True, figsize=(20, 9))
     ax1.plot(
-        ts[-len(stats.smoothed_values) :],
-        clip(stats.smoothed_values, lo=280, hi=320),
+        ts[-len(smoothed_values) :],
+        clip(smoothed_values, lo=280, hi=320),
         color="y",
     )
-    ax2.plot(ts[-len(stats.variances) :], clip(stats.variances, hi=10), color="y")
-    ax3.plot(ts[-len(stats.mean_log_ratios) :], stats.mean_log_ratios, color="y")
+    ax2.plot(ts[-len(variances) :], clip(variances, hi=10), color="y")
+    ax3.plot(ts[-len(mean_log_ratios) :], mean_log_ratios, color="y")
     for t in labels:
         for ax in [ax1, ax2, ax3]:
             ax.axvline(x=t, color="r")

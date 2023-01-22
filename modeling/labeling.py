@@ -32,9 +32,10 @@ def run(write: bool = False) -> None:
     for _, v in samples:
         stats.push(v)
 
-    adjusted_labels = adjust_labels(
-        ts[-len(stats.variances) :], stats.variances, labels
-    )
+    smoothed_values = stats.smoothed_stats.values()
+    variances = stats.variances.values()
+
+    adjusted_labels = adjust_labels(ts[-len(variances) :], variances, labels)
     if write:
         data.write_samples_and_labels(
             "../data/julie_3m_stable.adjusted.jsonl", samples, adjusted_labels
@@ -42,11 +43,11 @@ def run(write: bool = False) -> None:
 
     _, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(20, 6))
     ax1.plot(
-        ts[-len(stats.smoothed_values) :],
-        clip(stats.smoothed_values, lo=280, hi=320),
+        ts[-len(smoothed_values) :],
+        clip(smoothed_values, lo=280, hi=320),
         color="y",
     )
-    ax2.plot(ts[-len(stats.variances) :], clip(stats.variances, hi=10), color="y")
+    ax2.plot(ts[-len(variances) :], clip(variances, hi=10), color="y")
     for t in labels:
         for ax in [ax1, ax2]:
             ax.axvline(x=t, color="r")

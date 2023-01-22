@@ -46,7 +46,7 @@ func (s *StreamStats) Push(value float32) {
 	if !s.smoothedStats.Full() {
 		return
 	}
-	if s.means.n == 0 {
+	if s.means.Size() == 0 {
 		s.initialMean = s.smoothedStats.Mean()
 	}
 	s.means.Push(s.smoothedStats.Mean())
