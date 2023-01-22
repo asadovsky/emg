@@ -1,13 +1,11 @@
 """Data analysis code."""
 
-import math
-from collections import deque
-from collections.abc import Collection
 from datetime import datetime, timedelta
 
 import matplotlib.pyplot as plt
 
 from modeling import data
+from modeling.stream_stats import StreamStats
 
 
 def compute_metrics(
@@ -52,73 +50,10 @@ def compute_metrics(
     return tp, fp, fn
 
 
-def compute_moments(values: Collection[float]) -> tuple[float, float]:
-    mean, variance = 0, 0
-    for i, v in enumerate(values):
-        # Welford's algorithm.
-        old_mean = mean
-        mean += (v - mean) / (i + 1)
-        variance += (v - mean) * (v - old_mean)
-    variance /= len(values) - 1
-    return mean, variance
-
-
 def clip(
     values: list[float], *, lo: float = float("-inf"), hi: float = float("inf")
 ) -> list[float]:
     return [min(hi, max(lo, v)) for v in values]
-
-
-def mk_trailing_moments(values: list[float], w: int) -> tuple[list[float], list[float]]:
-    """Returns trailing (means, variances)."""
-    means: list[float] = [0] * (w - 1)
-    variances: list[float] = [0] * (w - 1)
-
-    r = deque(values[:w], maxlen=w)
-    mean, variance = compute_moments(r)
-    means.append(mean)
-    variances.append(variance)
-    for v in values[w:]:
-        # https://jonisalonen.com/2014/efficient-and-accurate-rolling-standard-deviation/
-        old_v = r[0]
-        old_mean = mean
-        mean += (v - old_v) / w
-        variance += (v - old_v) * (v - mean + old_v - old_mean) / (w - 1)
-        r.append(v)
-        means.append(mean)
-        variances.append(variance)
-
-    assert len(means) == len(variances) == len(values)
-    return means, variances
-
-
-def mk_smoothed_values(values: list[float], w: int) -> list[float]:
-    means, _ = mk_trailing_moments(values, w)
-    return [means[w - 1]] * (w - 1) + means[w - 1 :]
-
-
-def mk_mean_log_ratios(means: list[float], w: int) -> list[float]:
-    initial_mean = means[w - 1]
-    res: list[float] = [0] * (w - 1)
-    for v in means[w - 1 :]:
-        res.append(math.log(v) - math.log(initial_mean))
-    assert len(res) == len(means)
-    return res
-
-
-def mk_preds(
-    ts: list[datetime], variances: list[float], mean_log_ratios: list[float], w: int
-) -> list[datetime]:
-    res = []
-    n = 3
-    for i in range(n * w, len(variances)):
-        if (
-            variances[i] > 5
-            and mean_log_ratios[i] > 0.01
-            and all(variances[i - (j + 1) * w] < 1 for j in range(n))
-        ):
-            res.append(ts[i])
-    return res
 
 
 def run() -> None:
@@ -126,17 +61,21 @@ def run() -> None:
         "../data/julie_3m_stable.adjusted.jsonl"
     )
     ts = [t for t, _ in samples]
-    vs = [v for _, v in samples]
-    smoothed_values = mk_smoothed_values(vs, 5)
-    w = 20
-    means, variances = mk_trailing_moments(smoothed_values, w)
-    mean_log_ratios = mk_mean_log_ratios(means, w)
-    preds = mk_preds(ts, variances, mean_log_ratios, w)
+    stats = StreamStats()
+    preds = []
+    for t, v in samples:
+        stats.push(v)
+        if stats.full() and stats.pred():
+            preds.append(t)
 
     _, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True, figsize=(20, 9))
-    ax1.plot(ts, clip(smoothed_values, lo=280, hi=320), color="y")
-    ax2.plot(ts, clip(variances, hi=10), color="y")
-    ax3.plot(ts, mean_log_ratios, color="y")
+    ax1.plot(
+        ts[-len(stats.smoothed_values) :],
+        clip(stats.smoothed_values, lo=280, hi=320),
+        color="y",
+    )
+    ax2.plot(ts[-len(stats.variances) :], clip(stats.variances, hi=10), color="y")
+    ax3.plot(ts[-len(stats.mean_log_ratios) :], stats.mean_log_ratios, color="y")
     for t in labels:
         for ax in [ax1, ax2, ax3]:
             ax.axvline(x=t, color="r")
