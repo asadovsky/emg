@@ -26,7 +26,8 @@ def adjust_labels(
 
 
 def run(write: bool = False) -> None:
-    samples, labels = data.read_samples_and_labels("../data/julie_3m_stable.jsonl")
+    filename = "../data/julie_3m_stable.20230116.0.jsonl"
+    samples, labels = data.read_samples_and_labels(filename)
     ts = [t for t, _ in samples]
     stats = StreamStats()
     for _, v in samples:
@@ -38,7 +39,7 @@ def run(write: bool = False) -> None:
     adjusted_labels = adjust_labels(ts[-len(variances) :], variances, labels)
     if write:
         data.write_samples_and_labels(
-            "../data/julie_3m_stable.adjusted.jsonl", samples, adjusted_labels
+            filename.replace(".jsonl", ".adjusted.jsonl"), samples, adjusted_labels
         )
 
     _, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(20, 6))

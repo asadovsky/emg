@@ -57,9 +57,8 @@ def clip(
 
 
 def run() -> None:
-    samples, labels = data.read_samples_and_labels(
-        "../data/julie_3m_stable.adjusted.jsonl"
-    )
+    filename = "../data/julie_3m_stable.20230116.0.jsonl"
+    samples, labels = data.read_samples_and_labels(filename)
     ts = [t for t, _ in samples]
     stats = StreamStats()
     preds = []
