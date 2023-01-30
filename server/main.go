@@ -11,15 +11,15 @@ import (
 	"math"
 	"net/http"
 	"os"
-	"strconv"
 	"syscall"
 	"time"
 
-	"github.com/tarm/serial"
+	"github.com/jacobsa/go-serial/serial"
 )
 
 var httpPort = flag.Int("http-port", 4000, "")
 var arduinoPort = flag.String("arduino-port", "", "")
+var umyoPort = flag.String("umyo-port", "", "")
 var fakeData = flag.Bool("fake-data", false, "generate sinusoidal data")
 var recordFile = flag.String("record-file", "", "record data to this file")
 var replayFile = flag.String("replay-file", "", "replay data from this file")
@@ -126,18 +126,27 @@ func (h *hub) generateUpdates() {
 			time.Sleep(10 * time.Millisecond)
 		}
 	} else {
+		opts := serial.OpenOptions{DataBits: 8, StopBits: 1, MinimumReadSize: 1}
+		if *umyoPort != "" {
+			opts.PortName = *umyoPort
+			opts.BaudRate = 921600
+		} else {
+			opts.PortName = *arduinoPort
+			opts.BaudRate = 115200
+		}
 		for {
-			stream, err := serial.OpenPort(&serial.Config{Name: *arduinoPort, Baud: 115200})
+			r, err := serial.Open(opts)
 			if !os.IsNotExist(err) {
 				ok(err)
-				scanner := bufio.NewScanner(stream)
-				for scanner.Scan() {
-					f, err := strconv.ParseFloat(scanner.Text(), 32)
-					ok(err)
-					v := float32(f)
+				var c <-chan float32
+				if *umyoPort != "" {
+					c = GenValuesUmyo(r)
+				} else {
+					c = GenValuesArduino(r)
+				}
+				for v := range c {
 					h.broadcast <- &Update{Value: &v}
 				}
-				ok(scanner.Err())
 			}
 			time.Sleep(time.Second)
 		}
