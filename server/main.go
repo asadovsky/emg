@@ -99,23 +99,7 @@ func newHub() *hub {
 	}
 }
 
-func (h *hub) handleUpdate(u *Update) ([]byte, error) {
-	if u.Time == 0 {
-		u.Time = time.Now().UnixMilli()
-	}
-	if *recordFile != "" {
-		h.record <- u
-	}
-	if u.Value != nil {
-		h.stats.Push(*u.Value)
-		if h.stats.Full() {
-			u.Pred = h.stats.Pred()
-		}
-	}
-	return json.Marshal(u)
-}
-
-func (h *hub) listen() {
+func (h *hub) generateUpdates() {
 	if *replayFile != "" {
 		updates, err := readUpdatesFromFile(*replayFile)
 		ok(err)
@@ -161,7 +145,7 @@ func (h *hub) listen() {
 }
 
 func (h *hub) run() {
-	go h.listen()
+	go h.generateUpdates()
 	if *recordFile != "" {
 		go streamUpdatesToFile(*recordFile, h.record)
 	}
@@ -172,7 +156,19 @@ func (h *hub) run() {
 		case c := <-h.unsubscribe:
 			delete(h.clients, c)
 		case u := <-h.broadcast:
-			buf, err := h.handleUpdate(u)
+			if u.Time == 0 {
+				u.Time = time.Now().UnixMilli()
+			}
+			if *recordFile != "" {
+				h.record <- u
+			}
+			if u.Value != nil {
+				h.stats.Push(*u.Value)
+				if h.stats.Full() {
+					u.Pred = h.stats.Pred()
+				}
+			}
+			buf, err := json.Marshal(u)
 			ok(err)
 			for send := range h.clients {
 				send <- buf
