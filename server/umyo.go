@@ -36,7 +36,7 @@ func parseUmyoPacket(buf []byte) *UmyoPacket {
 		lb := buf[i]
 		i++
 		v := int(hb)*(1<<8) + int(lb)
-		if hb >= (1 << 7) {
+		if hb >= 1<<7 {
 			v -= 1 << 16
 		}
 		p.Values = append(p.Values, v)

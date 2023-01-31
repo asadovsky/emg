@@ -76,6 +76,7 @@ pylint==2.15.10
 pyparsing==3.0.9
 pyright==1.1.289
 pyrsistent==0.19.3
+pyserial==3.5
 python-dateutil==2.8.2
 python-json-logger==2.0.4
 PyYAML==6.0
