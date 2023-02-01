@@ -71,9 +71,11 @@ func GenValuesUmyo(r io.Reader) <-chan float32 {
 				}
 			}
 			p := parseUmyoPacket(buf[5:])
+			sw := NewSlidingWindow(len(p.Values), true)
 			for _, v := range p.Values {
-				c <- float32(v)
+				sw.Push(float32(v))
 			}
+			c <- sw.Mean()
 		}
 	}()
 	return c

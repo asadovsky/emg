@@ -5,6 +5,8 @@ import dataclasses
 import serial
 from serial.tools import list_ports
 
+from modeling.sliding_window import SlidingWindow
+
 
 @dataclasses.dataclass
 class UmyoPacket:
@@ -63,8 +65,10 @@ def main() -> None:
             if len(buf) == 5:
                 packet_len = buf[4]
         p = parse_umyo_packet(buf[5:])
+        sw = SlidingWindow(len(p.values), True)
         for v in p.values:
-            print(v)
+            sw.push(v)
+        print(sw.mean())
 
 
 if __name__ == "__main__":
