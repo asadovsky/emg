@@ -56,8 +56,7 @@ def clip(
     return [min(hi, max(lo, v)) for v in values]
 
 
-def run() -> None:
-    filename = "../data/julie_3m_stable.20230116.0.jsonl"
+def run(filename: str) -> None:
     samples, labels = data.read_samples_and_labels(filename)
     ts = [t for t, _ in samples]
     stats = StreamStats()
