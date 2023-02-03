@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 from modeling import data
 from modeling.stream_stats import StreamStats
@@ -50,9 +51,9 @@ def compute_metrics(
     return tp, fp, fn
 
 
-def clip(
-    values: list[float], *, lo: float = float("-inf"), hi: float = float("inf")
-) -> list[float]:
+def clip(values: list[float], *, lo_p: float = 0, hi_p: float = 100) -> list[float]:
+    lo = float(np.percentile(values, lo_p)) if lo_p > 0 else float("-inf")
+    hi = float(np.percentile(values, hi_p)) if hi_p < 100 else float("inf")
     return [min(hi, max(lo, v)) for v in values]
 
 
@@ -73,10 +74,10 @@ def run(filename: str) -> None:
     _, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True, figsize=(20, 9))
     ax1.plot(
         ts[-len(smoothed_values) :],
-        clip(smoothed_values, lo=280, hi=320),
+        clip(smoothed_values, lo_p=1, hi_p=99),
         color="y",
     )
-    ax2.plot(ts[-len(variances) :], clip(variances, hi=10), color="y")
+    ax2.plot(ts[-len(variances) :], clip(variances, hi_p=90), color="y")
     ax3.plot(ts[-len(mean_log_ratios) :], mean_log_ratios, color="y")
     for t in labels:
         for ax in [ax1, ax2, ax3]:

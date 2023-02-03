@@ -44,10 +44,10 @@ def run(filename: str, write: bool = False) -> None:
     _, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(20, 6))
     ax1.plot(
         ts[-len(smoothed_values) :],
-        clip(smoothed_values, lo=280, hi=320),
+        clip(smoothed_values, lo_p=1, hi_p=99),
         color="y",
     )
-    ax2.plot(ts[-len(variances) :], clip(variances, hi=10), color="y")
+    ax2.plot(ts[-len(variances) :], clip(variances, hi_p=90), color="y")
     for t in labels:
         for ax in [ax1, ax2]:
             ax.axvline(x=t, color="r")
