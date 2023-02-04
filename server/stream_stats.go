@@ -6,7 +6,7 @@ import (
 
 const smoothedWindowSize = 5  // 50ms
 const trailingWindowSize = 20 // 200ms
-const numWindows = 3
+const numWindows = 10
 
 type StreamStats struct {
 	// Computed over a sliding window of raw values.
@@ -28,7 +28,7 @@ func NewStreamStats() *StreamStats {
 		rawStats:      NewSlidingWindow(smoothedWindowSize, true),
 		smoothedStats: NewSlidingWindow(trailingWindowSize, true),
 		means:         NewSlidingWindow(1, false),
-		variances:     NewSlidingWindow(numWindows*trailingWindowSize+1, false),
+		variances:     NewSlidingWindow(numWindows*trailingWindowSize, false),
 		meanLogRatios: NewSlidingWindow(1, false),
 	}
 }
@@ -56,11 +56,11 @@ func (s *StreamStats) Push(value float32) {
 
 func (s *StreamStats) Pred() bool {
 	assert(s.Full())
-	if s.variances.Get(0) < 5 || s.meanLogRatios.Get(0) < 0.01 {
+	if s.variances.Get(0) < 2000 || s.meanLogRatios.Get(0) > -0.005 {
 		return false
 	}
-	for i := 0; i < numWindows; i++ {
-		if s.variances.Get(-(i+1)*trailingWindowSize) > 1 {
+	for i := 40; i < 120; i++ {
+		if s.variances.Get(-i) > 750 {
 			return false
 		}
 	}

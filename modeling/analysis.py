@@ -57,7 +57,7 @@ def clip(values: list[float], *, lo_p: float = 0, hi_p: float = 100) -> list[flo
     return [min(hi, max(lo, v)) for v in values]
 
 
-def run(filename: str) -> None:
+def run(filename: str, savefig: bool = False) -> None:
     samples, labels = data.read_samples_and_labels(filename)
     ts = [t for t, _ in samples]
     stats = StreamStats()
@@ -85,4 +85,6 @@ def run(filename: str) -> None:
     for t in preds:
         for ax in [ax1, ax2, ax3]:
             ax.axvline(x=t, color="g", linestyle=":")
+    if savefig:
+        plt.savefig(filename.replace(".jsonl", ".png"))
     plt.show()

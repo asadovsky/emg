@@ -6,7 +6,7 @@ from modeling.sliding_window import SlidingWindow
 
 _SMOOTHED_WINDOW_SIZE = 5  # 50ms
 _TRAILING_WINDOW_SIZE = 20  # 200ms
-_NUM_WINDOWS = 3
+_NUM_WINDOWS = 10
 
 
 class StreamStats:
@@ -21,7 +21,7 @@ class StreamStats:
         self.means: SlidingWindow = SlidingWindow(1, False)
         # Variances from `smoothed_stats`.
         self.variances: SlidingWindow = SlidingWindow(
-            _NUM_WINDOWS * _TRAILING_WINDOW_SIZE + 1, False
+            _NUM_WINDOWS * _TRAILING_WINDOW_SIZE, False
         )
         # The first value added to `means`.
         self.initial_mean: float = 0.0
@@ -54,9 +54,9 @@ class StreamStats:
 
     def pred(self) -> bool:
         assert self.full()
-        if self.variances.get(0) < 5 or self.mean_log_ratios.get(0) < 0.01:
+        if self.variances.get(0) < 2000 or self.mean_log_ratios.get(0) > -0.005:
             return False
-        for i in range(_NUM_WINDOWS):
-            if self.variances.get(-(i + 1) * _TRAILING_WINDOW_SIZE) > 1:
+        for i in range(40, 120):
+            if self.variances.get(-i) > 750:
                 return False
         return True
