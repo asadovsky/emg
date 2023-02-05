@@ -91,7 +91,7 @@ function onYouTubeIframeAPIReady() {
       disablekb: 1,
       fs: 0,
       modestbranding: 1,
-      mute: 1,
+      mute: 0,
       rel: 0,
     },
     events: {
