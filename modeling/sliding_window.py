@@ -22,7 +22,7 @@ class SlidingWindow:
         return self._n == self._window_size
 
     def get(self, i: int) -> float:
-        assert -self._window_size < i <= 0
+        assert -self._n < i <= 0
         return self._values[i - 1]
 
     def mean(self) -> float:

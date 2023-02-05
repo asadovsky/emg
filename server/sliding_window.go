@@ -27,7 +27,7 @@ func (s *SlidingWindow) Full() bool {
 }
 
 func (s *SlidingWindow) Get(i int) float32 {
-	assert(i <= 0 && i > -s.windowSize)
+	assert(i <= 0 && i > -s.n)
 	return s.values[(s.i+i+s.windowSize)%s.windowSize]
 }
 
