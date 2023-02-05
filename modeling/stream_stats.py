@@ -4,9 +4,8 @@ import math
 
 from modeling.sliding_window import SlidingWindow
 
-_SMOOTHED_WINDOW_SIZE = 5  # 50ms
-_TRAILING_WINDOW_SIZE = 20  # 200ms
-_NUM_WINDOWS = 10
+_STATS_WINDOW_SIZE = 20  # 200ms
+_SLIDING_WINDOW_SIZE = 300  # 3s
 
 
 class StreamStats:
@@ -14,49 +13,56 @@ class StreamStats:
 
     def __init__(self) -> None:
         # Computed over a sliding window of raw values.
-        self.raw_stats: SlidingWindow = SlidingWindow(_SMOOTHED_WINDOW_SIZE, True)
-        # Computed over a sliding window of smoothed values.
-        self.smoothed_stats: SlidingWindow = SlidingWindow(_TRAILING_WINDOW_SIZE, True)
-        # Means from `smoothed_stats`.
-        self.means: SlidingWindow = SlidingWindow(1, False)
-        # Variances from `smoothed_stats`.
-        self.variances: SlidingWindow = SlidingWindow(
-            _NUM_WINDOWS * _TRAILING_WINDOW_SIZE, False
+        self.stats: SlidingWindow = SlidingWindow(_STATS_WINDOW_SIZE, True)
+        # Means and variances from `stats`.
+        self.means: SlidingWindow = SlidingWindow(_SLIDING_WINDOW_SIZE, False)
+        self.variances: SlidingWindow = SlidingWindow(_SLIDING_WINDOW_SIZE, False)
+        # Current-vs-recent mean and variance log ratios.
+        self.mean_log_ratios: SlidingWindow = SlidingWindow(_SLIDING_WINDOW_SIZE, False)
+        self.variance_log_ratios: SlidingWindow = SlidingWindow(
+            _SLIDING_WINDOW_SIZE, False
         )
-        # The first value added to `means`.
-        self.initial_mean: float = 0.0
-        # Current-vs-initial mean log ratios.
-        self.mean_log_ratios: SlidingWindow = SlidingWindow(1, False)
 
     def full(self) -> bool:
         return (
-            self.raw_stats.full()
-            and self.smoothed_stats.full()
+            self.stats.full()
             and self.means.full()
             and self.variances.full()
             and self.mean_log_ratios.full()
+            and self.variance_log_ratios.full()
         )
 
     def push(self, value: float) -> None:
-        self.raw_stats.push(value)
-        if not self.raw_stats.full():
+        self.stats.push(value)
+        if not self.stats.full():
             return
-        self.smoothed_stats.push(self.raw_stats.mean())
-        if not self.smoothed_stats.full():
+        mean, variance = self.stats.mean(), self.stats.variance()
+        self.means.push(mean)
+        self.variances.push(variance)
+        i = -100  # -1s
+        if self.means.size() <= -i:
             return
-        if self.means.size() == 0:
-            self.initial_mean = self.smoothed_stats.mean()
-        self.means.push(self.smoothed_stats.mean())
-        self.variances.push(self.smoothed_stats.variance())
-        self.mean_log_ratios.push(
-            math.log(self.smoothed_stats.mean()) - math.log(self.initial_mean)
+        self.mean_log_ratios.push(math.log(mean) - math.log(self.means.get(i)))
+        self.variance_log_ratios.push(
+            math.log(variance) - math.log(self.variances.get(i))
         )
 
     def pred(self) -> bool:
         assert self.full()
-        if self.variances.get(0) < 2000 or self.mean_log_ratios.get(0) > -0.005:
+        # Mean spike at 0s.
+        if self.mean_log_ratios.get(0) < 0.015:
             return False
-        for i in range(40, 120):
-            if self.variances.get(-i) > 750:
+        # Mean dip in [-1s, 0s].
+        i = 0
+        while True:
+            if i < -100:
                 return False
+            if self.mean_log_ratios.get(i) < -0.015:
+                break
+            i -= 1
+        # No mean spike in [-2s, dip].
+        while i > -200:
+            if self.mean_log_ratios.get(i) > 0.015:
+                return False
+            i -= 1
         return True

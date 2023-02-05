@@ -51,10 +51,33 @@ def compute_metrics(
     return tp, fp, fn
 
 
-def clip(values: list[float], *, lo_p: float = 0, hi_p: float = 100) -> list[float]:
+def clip(values: list[float], *, lo_p: float = 1, hi_p: float = 99) -> list[float]:
     lo = float(np.percentile(values, lo_p)) if lo_p > 0 else float("-inf")
     hi = float(np.percentile(values, hi_p)) if hi_p < 100 else float("inf")
     return [min(hi, max(lo, v)) for v in values]
+
+
+def plot(
+    ts: list[datetime],
+    means: list[float],
+    variances: list[float],
+    mean_log_ratios: list[float],
+    variance_log_ratios: list[float],
+    labels: list[datetime],
+    preds: list[datetime],
+) -> None:
+    _, axs = plt.subplots(4, 1, sharex=True, figsize=(20, 12))
+    axs[0].plot(ts[-len(means) :], clip(means), color="y")
+    axs[1].plot(ts[-len(variances) :], clip(variances, hi_p=90), color="y")
+    axs[2].plot(ts[-len(mean_log_ratios) :], clip(mean_log_ratios), color="y")
+    axs[3].plot(ts[-len(variance_log_ratios) :], clip(variance_log_ratios), color="y")
+    for t in labels:
+        for ax in axs:
+            ax.axvline(x=t, color="r")
+    for t in preds:
+        for ax in axs:
+            ax.axvline(x=t, color="g", linestyle=":")
+    plt.show()
 
 
 def run(filename: str, savefig: bool = False) -> None:
@@ -67,24 +90,14 @@ def run(filename: str, savefig: bool = False) -> None:
         if stats.full() and stats.pred():
             preds.append(t)
 
-    smoothed_values = stats.smoothed_stats.values()
-    variances = stats.variances.values()
-    mean_log_ratios = stats.mean_log_ratios.values()
-
-    _, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True, figsize=(20, 9))
-    ax1.plot(
-        ts[-len(smoothed_values) :],
-        clip(smoothed_values, lo_p=1, hi_p=99),
-        color="y",
+    plot(
+        ts,
+        stats.means.values(),
+        stats.variances.values(),
+        stats.mean_log_ratios.values(),
+        stats.variance_log_ratios.values(),
+        labels,
+        preds,
     )
-    ax2.plot(ts[-len(variances) :], clip(variances, hi_p=90), color="y")
-    ax3.plot(ts[-len(mean_log_ratios) :], mean_log_ratios, color="y")
-    for t in labels:
-        for ax in [ax1, ax2, ax3]:
-            ax.axvline(x=t, color="r")
-    for t in preds:
-        for ax in [ax1, ax2, ax3]:
-            ax.axvline(x=t, color="g", linestyle=":")
     if savefig:
         plt.savefig(filename.replace(".jsonl", ".png"))
-    plt.show()

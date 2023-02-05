@@ -4,63 +4,69 @@ import (
 	"math"
 )
 
-const smoothedWindowSize = 5  // 50ms
-const trailingWindowSize = 20 // 200ms
-const numWindows = 10
+const statsWindowSize = 20    // 200ms
+const slidingWindowSize = 300 // 3s
 
 type StreamStats struct {
 	// Computed over a sliding window of raw values.
-	rawStats *SlidingWindow
-	// Computed over a sliding window of smoothed values.
-	smoothedStats *SlidingWindow
-	// Means from `smoothedStats`.
-	means *SlidingWindow
-	// Variances from `smoothedStats`.
+	stats *SlidingWindow
+	// Means and variances from `stats`.
+	means     *SlidingWindow
 	variances *SlidingWindow
-	// The first value added to `means`.
-	initialMean float32
-	// Current-vs-initial mean log ratios.
-	meanLogRatios *SlidingWindow
+	// Current-vs-recent mean and variance log ratios.
+	meanLogRatios     *SlidingWindow
+	varianceLogRatios *SlidingWindow
 }
 
 func NewStreamStats() *StreamStats {
 	return &StreamStats{
-		rawStats:      NewSlidingWindow(smoothedWindowSize, true),
-		smoothedStats: NewSlidingWindow(trailingWindowSize, true),
-		means:         NewSlidingWindow(1, false),
-		variances:     NewSlidingWindow(numWindows*trailingWindowSize, false),
-		meanLogRatios: NewSlidingWindow(1, false),
+		stats:             NewSlidingWindow(statsWindowSize, true),
+		means:             NewSlidingWindow(slidingWindowSize, false),
+		variances:         NewSlidingWindow(slidingWindowSize, false),
+		meanLogRatios:     NewSlidingWindow(slidingWindowSize, false),
+		varianceLogRatios: NewSlidingWindow(slidingWindowSize, false),
 	}
 }
 
 func (s *StreamStats) Full() bool {
-	return s.rawStats.Full() && s.smoothedStats.Full() && s.means.Full() && s.variances.Full() && s.meanLogRatios.Full()
+	return s.stats.Full() && s.means.Full() && s.variances.Full() && s.meanLogRatios.Full() && s.varianceLogRatios.Full()
 }
 
 func (s *StreamStats) Push(value float32) {
-	s.rawStats.Push(value)
-	if !s.rawStats.Full() {
+	s.stats.Push(value)
+	if !s.stats.Full() {
 		return
 	}
-	s.smoothedStats.Push(s.rawStats.Mean())
-	if !s.smoothedStats.Full() {
+	mean, variance := s.stats.Mean(), s.stats.Variance()
+	s.means.Push(mean)
+	s.variances.Push(variance)
+	i := -100 // -1s
+	if s.means.Size() <= -i {
 		return
 	}
-	if s.means.Size() == 0 {
-		s.initialMean = s.smoothedStats.Mean()
-	}
-	s.means.Push(s.smoothedStats.Mean())
-	s.variances.Push(s.smoothedStats.Variance())
-	s.meanLogRatios.Push(float32(math.Log(float64(s.smoothedStats.Mean())) - math.Log(float64(s.initialMean))))
+	s.meanLogRatios.Push(float32(math.Log(float64(mean)) - math.Log(float64(s.means.Get(i)))))
+	s.varianceLogRatios.Push(float32(math.Log(float64(variance)) - math.Log(float64(s.variances.Get(i)))))
 }
 
 func (s *StreamStats) Pred() bool {
 	assert(s.Full())
-	if s.variances.Get(0) < 2000 || s.meanLogRatios.Get(0) > -0.005 {
+	// Mean spike at 0s.
+	if s.meanLogRatios.Get(0) < 0.015 {
 		return false
 	}
-	for i := 40; i < 120; i++ {
-		if s.variances.Get(-i) > 750 {
+	// Mean dip in [-1s, 0s].
+	i := 0
+	for ; ; i-- {
+		if i < -100 {
+			return false
+		}
+		if s.meanLogRatios.Get(i) < -0.015 {
+			break
+		}
+	}
+	// No mean spike in [-2s, dip].
+	for ; i > -200; i-- {
+		if s.meanLogRatios.Get(i) > 0.015 {
 			return false
 		}
 	}
