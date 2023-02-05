@@ -77,10 +77,9 @@ def plot(
     for t in preds:
         for ax in axs:
             ax.axvline(x=t, color="g", linestyle=":")
-    plt.show()
 
 
-def run(filename: str, savefig: bool = False) -> None:
+def run(filename: str, *, savefig: bool = False) -> None:
     samples, labels = data.read_samples_and_labels(filename)
     ts = [t for t, _ in samples]
     stats = StreamStats()
@@ -101,3 +100,4 @@ def run(filename: str, savefig: bool = False) -> None:
     )
     if savefig:
         plt.savefig(filename.replace(".jsonl", ".png"))
+    plt.show()

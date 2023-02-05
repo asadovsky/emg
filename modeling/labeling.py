@@ -2,8 +2,9 @@
 
 from datetime import datetime, timedelta
 
-from modeling import data
-from modeling.analysis import plot
+import matplotlib.pyplot as plt
+
+from modeling import analysis, data
 from modeling.stream_stats import StreamStats
 
 
@@ -23,7 +24,7 @@ def adjust_labels(
     return res
 
 
-def run(filename: str, write: bool = False) -> None:
+def run(filename: str, *, write: bool = False) -> None:
     samples, labels = data.read_samples_and_labels(filename)
     ts = [t for t, _ in samples]
     stats = StreamStats()
@@ -39,7 +40,7 @@ def run(filename: str, write: bool = False) -> None:
             filename.replace(".jsonl", ".adjusted.jsonl"), samples, adjusted_labels
         )
 
-    plot(
+    analysis.plot(
         ts,
         stats.means.values(),
         stats.variances.values(),
@@ -48,3 +49,4 @@ def run(filename: str, write: bool = False) -> None:
         labels,
         adjusted_labels,
     )
+    plt.show()
