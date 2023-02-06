@@ -1,3 +1,5 @@
+import {Plot} from './plot.js';
+
 const timerEl = document.getElementById('timer');
 const plotEl = document.getElementById('plot');
 
@@ -78,14 +80,15 @@ class Timer {
 
 let player;
 
-const timer = new Timer(timerEl, 5, () => {
+const timer = new Timer(timerEl, 10, () => {
   player.pauseVideo();
 });
 
 // https://developers.google.com/youtube/iframe_api_reference
-function onYouTubeIframeAPIReady() {
+window.onYouTubeIframeAPIReady = () => {
+  const v = new URLSearchParams(window.location.search).get('v');
   player = new YT.Player('player', {
-    videoId: 'p_LVOPX37SY',
+    videoId: v || 'p_LVOPX37SY',
     playerVars: {
       controls: 0,
       disablekb: 1,
@@ -96,6 +99,7 @@ function onYouTubeIframeAPIReady() {
     },
     events: {
       onReady: (ev) => {
+        player.seekTo(0);
         ev.target.playVideo();
       },
       onStateChange: (ev) => {
@@ -116,30 +120,18 @@ function onYouTubeIframeAPIReady() {
       },
     },
   });
-}
+};
 
 const scriptEl = document.createElement('script');
 scriptEl.src = 'https://www.youtube.com/iframe_api';
 document.head.appendChild(scriptEl);
 
-const scOpts = {
-  responsive: true,
-  grid: {strokeStyle: '#333', verticalSections: 0},
-};
-
-const sc = new SmoothieChart(scOpts);
-sc.streamTo(plotEl);
-const ts = new TimeSeries();
-sc.addTimeSeries(ts, {
-  lineWidth: 2,
-  strokeStyle: '#990',
-  interpolation: 'linear',
-});
+const plot = new Plot(plotEl);
 
 const socket = new WebSocket('ws://' + document.location.host + '/ws');
-socket.onclose = () => {};
 socket.onmessage = (ev) => {
   const u = JSON.parse(ev.data);
+  plot.handleUpdate(u);
   if (u.Pred) {
     timer.reset();
     timer.start();
@@ -147,7 +139,6 @@ socket.onmessage = (ev) => {
       player.playVideo();
     }
   }
-  ts.append(new Date(u.Time), u.Value);
 };
 
 document.addEventListener('keydown', (ev) => {
