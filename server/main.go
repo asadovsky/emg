@@ -18,8 +18,8 @@ import (
 )
 
 var httpPort = flag.Int("http-port", 4000, "")
-var arduinoPort = flag.String("arduino-port", "", "")
 var umyoPort = flag.String("umyo-port", "", "")
+var arduinoPort = flag.String("arduino-port", "", "")
 var fakeData = flag.Bool("fake-data", false, "generate sinusoidal data")
 var recordFile = flag.String("record-file", "", "record data to this file")
 var replayFile = flag.String("replay-file", "", "replay data from this file")
@@ -125,7 +125,7 @@ func (h *hub) generateUpdates() {
 			h.broadcast <- &Update{Time: uTime.UnixMilli(), Value: &v}
 			time.Sleep(10 * time.Millisecond)
 		}
-	} else {
+	} else if *umyoPort != "" || *arduinoPort != "" {
 		opts := serial.OpenOptions{DataBits: 8, StopBits: 1, MinimumReadSize: 1}
 		if *umyoPort != "" {
 			opts.PortName = *umyoPort
@@ -223,7 +223,6 @@ func main() {
 	flag.Parse()
 	if *replayFile != "" {
 		assert(*recordFile == "")
-		assert(!*fakeData)
 	}
 	h := newHub()
 	go h.run()
