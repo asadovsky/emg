@@ -50,19 +50,19 @@ class StreamStats:
     def pred(self) -> bool:
         assert self.full()
         # Mean spike at 0s.
-        if self.mean_log_ratios.get(0) < 0.02:
+        if self.mean_log_ratios.get(0) < 0.015:
             return False
         # Mean dip in [-1s, 0s].
         i = 0
         while True:
             if i < -100:
                 return False
-            if self.mean_log_ratios.get(i) < -0.02:
+            if self.mean_log_ratios.get(i) < -0.015:
                 break
             i -= 1
         # No mean spike in [-2s, dip].
         while i > -200:
-            if self.mean_log_ratios.get(i) > 0.02:
+            if self.mean_log_ratios.get(i) > 0.015:
                 return False
             i -= 1
         return True

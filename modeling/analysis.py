@@ -76,7 +76,7 @@ def plot(
             ax.axvline(x=t, color="r")
     for t in preds:
         for ax in axs:
-            ax.axvline(x=t, color="g", linestyle=":")
+            ax.axvline(x=t, color="c", linestyle=":")
 
 
 def run(filename: str, *, savefig: bool = False) -> None:

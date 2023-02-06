@@ -14,7 +14,7 @@ def adjust_labels(
     res = []
     i = 0
     for label in labels:
-        while i < len(ts) and label - ts[i] > timedelta(seconds=0.5):
+        while i < len(ts) and label - ts[i] > timedelta(seconds=1):
             i += 1
         j = i
         while j < len(ts) and variance_log_ratios[j] < 2:

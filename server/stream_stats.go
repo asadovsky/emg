@@ -51,7 +51,7 @@ func (s *StreamStats) Push(value float32) {
 func (s *StreamStats) Pred() bool {
 	assert(s.Full())
 	// Mean spike at 0s.
-	if s.meanLogRatios.Get(0) < 0.02 {
+	if s.meanLogRatios.Get(0) < 0.015 {
 		return false
 	}
 	// Mean dip in [-1s, 0s].
@@ -60,13 +60,13 @@ func (s *StreamStats) Pred() bool {
 		if i < -100 {
 			return false
 		}
-		if s.meanLogRatios.Get(i) < -0.02 {
+		if s.meanLogRatios.Get(i) < -0.015 {
 			break
 		}
 	}
 	// No mean spike in [-2s, dip].
 	for ; i > -200; i-- {
-		if s.meanLogRatios.Get(i) > 0.02 {
+		if s.meanLogRatios.Get(i) > 0.015 {
 			return false
 		}
 	}
