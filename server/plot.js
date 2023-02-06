@@ -49,17 +49,18 @@ export class Plot {
       this.tsPreds_.clear();
       return;
     }
-    const d = new Date(u.Time);
     this.tsLabels_.append(new Date(u.Time - 1), 0);
     this.tsPreds_.append(new Date(u.Time - 1), 0);
     if (u.Label) {
-      this.tsLabels_.append(d, 1);
+      this.tsLabels_.append(new Date(u.Time), 1);
+      this.tsLabels_.append(new Date(u.Time + 1), 0);
       return;
     }
     if (u.Pred) {
-      this.tsPreds_.append(d, 1);
+      this.tsPreds_.append(new Date(u.Time), 1);
+      this.tsPreds_.append(new Date(u.Time + 1), 0);
     }
     console.assert(u.Value !== undefined);
-    this.tsValues_.append(d, u.Value);
+    this.tsValues_.append(new Date(u.Time), u.Value);
   }
 }
