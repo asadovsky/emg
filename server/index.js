@@ -1,7 +1,8 @@
 import {Plot} from './plot.js';
 
-const timerEl = document.getElementById('timer');
+const playerOverlayEl = document.getElementById('player-overlay');
 const plotEl = document.getElementById('plot');
+const timerEl = document.getElementById('timer');
 
 class TimerView {
   constructor(el, initTimeLeft) {
@@ -18,8 +19,9 @@ class TimerView {
     const frac = timeLeft / this.initTimeLeft_;
     this.el_.style.height = 100 * frac + '%';
     const colors = ['crimson', 'goldenrod', 'seagreen'];
-    this.el_.style.backgroundColor =
-      colors[frac === 1 ? colors.length - 1 : Math.trunc(colors.length * frac)];
+    const idx = Math.min(colors.length - 1, Math.trunc(colors.length * frac));
+    this.el_.style.backgroundColor = colors[idx];
+    playerOverlayEl.style.opacity = idx > 0 ? 0 : 0.7;
   }
 }
 
@@ -87,7 +89,7 @@ const timer = new Timer(timerEl, 10, () => {
 // https://developers.google.com/youtube/iframe_api_reference
 window.onYouTubeIframeAPIReady = () => {
   const v = new URLSearchParams(window.location.search).get('v');
-  player = new YT.Player('player', {
+  player = new YT.Player('player-iframe', {
     videoId: v || 'p_LVOPX37SY',
     playerVars: {
       controls: 0,
@@ -99,7 +101,7 @@ window.onYouTubeIframeAPIReady = () => {
     },
     events: {
       onReady: (ev) => {
-        player.seekTo(0);
+        player.seekTo(0, true);
         ev.target.playVideo();
       },
       onStateChange: (ev) => {
