@@ -116,6 +116,8 @@ window.onYouTubeIframeAPIReady = () => {
             break;
           }
         }
+        // Restore focus to window so the keydown listener keeps triggering.
+        window.focus();
       },
       onError: (ev) => {
         console.error(ev.data);
