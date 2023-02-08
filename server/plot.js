@@ -3,17 +3,17 @@ const SC_OPTS = {
   grid: {strokeStyle: '#333', verticalSections: 0},
 };
 
-function mkCanvas() {
+function mkCanvas(height) {
   const res = document.createElement('canvas');
   res.style.display = 'block';
   res.style.width = '100%';
-  res.style.height = '200px';
+  res.style.height = height;
   return res;
 }
 
 export class Plot {
   constructor(el) {
-    const valuesEl = mkCanvas();
+    const valuesEl = mkCanvas('200px');
     el.appendChild(valuesEl);
     const scValues = new SmoothieChart(SC_OPTS);
     scValues.streamTo(valuesEl);
@@ -24,7 +24,7 @@ export class Plot {
       interpolation: 'linear',
     });
 
-    const labelsAndPredsEl = mkCanvas();
+    const labelsAndPredsEl = mkCanvas('50px');
     el.appendChild(labelsAndPredsEl);
     const scLabelsAndPreds = new SmoothieChart(SC_OPTS);
     scLabelsAndPreds.streamTo(labelsAndPredsEl);

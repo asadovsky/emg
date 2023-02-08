@@ -82,9 +82,12 @@ class Timer {
 
 let player;
 
-const timer = new Timer(timerEl, 10, () => {
-  player.pauseVideo();
-});
+const timer = (() => {
+  const t = new URLSearchParams(window.location.search).get('t');
+  return new Timer(timerEl, t ? parseInt(t) : 10, () => {
+    player.pauseVideo();
+  });
+})();
 
 // https://developers.google.com/youtube/iframe_api_reference
 window.onYouTubeIframeAPIReady = () => {
