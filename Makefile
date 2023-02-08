@@ -1,6 +1,8 @@
 SHELL := /bin/bash -euo pipefail
 PATH := node_modules/.bin:$(PATH)
 
+# New or modified files relative to main branch, and untracked files.
+TOUCHED_PY_FILES := $(shell cat <(git diff --name-only --diff-filter=d main | grep '\.py$$') <(git ls-files -o --exclude-standard '*.py') | sort)
 # All non-deleted files.
 ALL_PY_FILES := $(shell comm -23 <(git ls-files -c -o --exclude-standard '*.py' | sort) <(git ls-files -d | sort))
 
@@ -30,9 +32,20 @@ lint: node_modules
 	go vet ./...
 	prettier --check .
 	jshint .
-	isort --profile black --check .
-	black --check .
-	pyright .
+	@if [ -z "${TOUCHED_PY_FILES}" ]; then exit 1; fi
+	isort --profile black --check $(TOUCHED_PY_FILES)
+	black --check $(TOUCHED_PY_FILES)
+	pyright $(TOUCHED_PY_FILES)
+	pylint $(TOUCHED_PY_FILES) --rcfile=.pylintrc
+
+.PHONY: lint-all
+lint-all: node_modules
+	go vet ./...
+	prettier --check .
+	jshint .
+	isort --profile black --check $(ALL_PY_FILES)
+	black --check $(ALL_PY_FILES)
+	pyright $(ALL_PY_FILES)
 	pylint $(ALL_PY_FILES) --rcfile=.pylintrc
 
 .PHONY: test
