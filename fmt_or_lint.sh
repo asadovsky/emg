@@ -41,7 +41,7 @@ if [ $FMT ]; then
     black .
   fi
 else
-  if [ -f go.mod ]; then
+  if [ "$(command -v go)" -a -f go.mod ]; then
     go vet ./...
   fi
   if [ "$(command -v prettier)" ]; then
