@@ -1,6 +1,6 @@
 {
   "name": "emg",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "devDependencies": {
     "jshint": "^2.13.6",
     "postcss": "^8.4.21",
