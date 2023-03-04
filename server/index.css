@@ -18,12 +18,12 @@ body {
 
 #main {
   display: flex;
-  flex: auto;
+  flex: 1;
 }
 
 #player {
   position: relative;
-  flex: auto;
+  flex: 1;
 }
 
 #player-iframe,
