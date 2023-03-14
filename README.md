@@ -1,9 +1,5 @@
 # emg
 
-## TODO
-
-- Write code to read data from uMyo
-
 ## Environment setup
 
 ### Requirements
@@ -38,13 +34,6 @@ Add a new package (using `numpy` as an example):
     $ echo numpy >> requirements.in && sort -u -o requirements.in requirements.in
     $ pip install -r requirements.in
     $ pip freeze > requirements.txt
-
-### Jupyter
-
-Add root directory to `sys.path`:
-
-    import sys
-    sys.path.append("/Users/sadovsky/dev/emg")
 
 ## Resources
 
