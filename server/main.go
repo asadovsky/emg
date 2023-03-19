@@ -216,7 +216,7 @@ func (h *hub) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn.Close()
 }
 
-//go:embed *.css *.html *.js
+//go:embed static
 var content embed.FS
 
 func main() {
