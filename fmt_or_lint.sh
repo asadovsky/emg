@@ -34,8 +34,8 @@ if [ $FMT ]; then
   if [ "$(command -v prettier)" ]; then
     prettier --write .
   fi
-  if [ "$(command -v isort)" ]; then
-    isort --profile black .
+  if [ "$(command -v ruff)" ]; then
+    ruff check --fix .
   fi
   if [ "$(command -v black)" ]; then
     black .
@@ -52,17 +52,14 @@ else
   fi
   readonly PY_FILES=$(list-files py)
   if [ "$PY_FILES" != '' ]; then
-    if [ "$(command -v isort)" ]; then
-      isort --profile black --check $PY_FILES
+    if [ "$(command -v ruff)" ]; then
+      ruff check $PY_FILES
     fi
     if [ "$(command -v black)" ]; then
       black --check $PY_FILES
     fi
     if [ "$(command -v pyright)" ]; then
       pyright $PY_FILES
-    fi
-    if [ "$(command -v pylint)" ]; then
-      pylint $PY_FILES --rcfile=.pylintrc
     fi
   fi
 fi
