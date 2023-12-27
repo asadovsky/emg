@@ -35,7 +35,7 @@ if [ $FMT ]; then
     prettier --write .
   fi
   if [ "$(command -v ruff)" ]; then
-    ruff check --fix-only .
+    ruff format .
   fi
   if [ "$(command -v black)" ]; then
     black .
@@ -50,14 +50,14 @@ else
   if [ "$(command -v jshint)" ]; then
     jshint .
   fi
+  if [ "$(command -v ruff)" ]; then
+    ruff check .
+  fi
+  if [ "$(command -v black)" ]; then
+    black --check .
+  fi
   readonly PY_FILES=$(list-files py)
   if [ "$PY_FILES" != '' ]; then
-    if [ "$(command -v ruff)" ]; then
-      ruff check $PY_FILES
-    fi
-    if [ "$(command -v black)" ]; then
-      black --check $PY_FILES
-    fi
     if [ "$(command -v pyright)" ]; then
       pyright $PY_FILES
     fi
