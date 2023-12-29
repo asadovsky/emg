@@ -35,6 +35,7 @@ if [ $FMT ]; then
     prettier --write .
   fi
   if [ "$(command -v ruff)" ]; then
+    ruff check --fix-only .
     ruff format .
   fi
   if [ "$(command -v black)" ]; then
@@ -52,6 +53,7 @@ else
   fi
   if [ "$(command -v ruff)" ]; then
     ruff check .
+    ruff format --check .
   fi
   if [ "$(command -v black)" ]; then
     black --check .
