@@ -67,6 +67,7 @@ def plot(
     preds: list[datetime],
 ) -> None:
     _, axs = plt.subplots(4, 1, sharex=True, figsize=(20, 12))
+    assert isinstance(axs, list)
     axs[0].plot(ts[-len(means) :], clip(means), color="y")
     axs[1].plot(ts[-len(variances) :], clip(variances, hi_p=90), color="y")
     axs[2].plot(ts[-len(mean_log_ratios) :], clip(mean_log_ratios), color="y")

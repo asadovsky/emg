@@ -1,5 +1,3 @@
-black
-black[jupyter]
 ipykernel
 ipython
 matplotlib

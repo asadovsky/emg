@@ -14,7 +14,7 @@ class UmyoPacket:
     values: list[int] = dataclasses.field(default_factory=list)
 
 
-def parse_umyo_packet(buf: bytes) -> UmyoPacket:
+def parse_umyo_packet(buf: bytearray) -> UmyoPacket:
     # https://github.com/ultimaterobotics/uMyo_python_tools/blob/main/umyo_parser.py
     # https://github.com/ultimaterobotics/uMyo_v2/blob/main/main.c
     p = UmyoPacket()
