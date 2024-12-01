@@ -1,4 +1,5 @@
 {
   "bracketSpacing": false,
+  "plugins": ["prettier-plugin-css-order"],
   "singleQuote": true
 }
