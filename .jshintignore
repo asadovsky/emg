@@ -1,2 +1,2 @@
-node_modules
-server/static/third_party
+node_modules/
+server/static/third_party/

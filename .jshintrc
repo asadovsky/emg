@@ -1,6 +1,6 @@
 {
   "camelcase": true,
-  "esversion": 8,
+  "esversion": 11,
   "eqeqeq": true,
   "expr": true,
   "forin": true,
@@ -9,6 +9,7 @@
   "indent": 2,
   "latedef": "nofunc",
   "laxbreak": true,
+  "maxlen": 80,
   "newcap": true,
   "noarg": true,
   "nonbsp": true,
@@ -17,15 +18,7 @@
   "strict": "implied",
   "sub": true,
   "trailing": true,
-  "undef": true,
-
-  "browser": true,
-  "devel": true,
-  "node": true,
-
-  "globals": {
-    "SmoothieChart": false,
-    "TimeSeries": false,
-    "YT": false
-  }
+  "-W034": true,
+  "-W097": true,
+  "-W117": true
 }
