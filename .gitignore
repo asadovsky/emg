@@ -1,5 +1,6 @@
-.ipynb_checkpoints
-__pycache__
-node_modules
+.ipynb_checkpoints/
+.venv/
+__pycache__/
+node_modules/
 notebook.ipynb
-server/static/third_party
+server/static/third_party/
